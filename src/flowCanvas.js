@@ -11,6 +11,12 @@ class FlowCanvas{
         this.outputCanvas = this.p5.createFramebuffer({ width: this.settings.width, height: this.settings.height, textureFiltering: this.p5.NEAREST, format: this.p5.FLOAT});
         this.flowFieldShader = this.createFlowFieldShader(this.p5);
         this.outputShader = this.createOutputShader();
+        if(this.settings.inputType == 'text'){
+            this.reloadText();
+        }
+        else{
+            this.reloadImage();
+        }
     }
     async loadNewImage(fname){
         const img = await this.p5.loadImage(fname);
@@ -80,7 +86,6 @@ class FlowCanvas{
         this.p5.shader(this.outputShader);
         this.outputShader.setUniform('uTargetImage',this.settings.srcImage);
         this.outputShader.setUniform('uImageScale',this.settings.imageScale);
-        this.outputShader.setUniform('uImageWidth',this.settings.srcImage.width/this.outputCanvas.width);
         this.outputShader.setUniform('uFlowTexture',this.flowFieldCanvas);
         this.outputShader.setUniform('uBackgroundStyle',this.settings.backgroundStyle);
         this.outputShader.setUniform('uBackgroundColor',this.settings.backgroundColor);
@@ -188,10 +193,9 @@ class FlowCanvas{
             uniform float uWarpAmount;
             uniform vec2 uViewOffset;
             out vec4 fragColor;
-
+            
+            //value to scale the image by
             uniform float uImageScale;
-            uniform float uImageWidth;
-
             uniform float uGridSize;
             uniform float uGridThickness;
             uniform vec3 uBackgroundColor;
@@ -202,6 +206,7 @@ class FlowCanvas{
             void main() {
                 vec4 sampleCoordinates = texture(uFlowTexture,vPosition) - 0.5 + vec4(uViewOffset,1.0,1.0);
                 vec2 warpedCoordinates = vec2(vPosition.x+sampleCoordinates.x * uWarpAmount,vPosition.y+sampleCoordinates.y * uWarpAmount);
+                //centering the coordinates
                 vec2 adjustedCoordinates = (warpedCoordinates - 0.5)/uImageScale + 0.5;
                 //check if it's on a grid coordinate
                 float alpha = max(max(1.0 / uGridSize - mod(warpedCoordinates.x,1.0/uGridSize),mod(warpedCoordinates.x,1.0/uGridSize)),max(1.0 / uGridSize - mod(warpedCoordinates.y,1.0/uGridSize),mod(warpedCoordinates.y,1.0/uGridSize)));
@@ -209,7 +214,7 @@ class FlowCanvas{
                 vec4 imageColor = texture(uTargetImage,adjustedCoordinates);
                 //clear background
                 if(uBackgroundStyle == 0){
-                    if(imageColor.a != 0.0){
+                    if(imageColor.a != 0.0 && !(imageColor.r >= 0.9 && imageColor.g >= 0.9 && imageColor.b >= 0.9)){
                         fragColor = imageColor;
                     }
                     else{
@@ -218,7 +223,6 @@ class FlowCanvas{
                 }
                 //solid color
                 else if(uBackgroundStyle == 1){
-                    // fragColor = mix(vec4(uBackgroundColor,1.0),imageColor,imageColor.a);
                     fragColor = vec4(uBackgroundColor,1.0)*(1.0 - imageColor.a) + imageColor;
                 }
                 //grid

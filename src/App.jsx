@@ -8,21 +8,21 @@ import './main.css';
 import LiquidUIContainer from './components/ui.jsx'
 
 function App() {
-
+  const canvasDim = Math.min(window.innerWidth - 250,window.innerHeight);
   const settings = {
     imageLink : './test.jpg',
     fontLink : './times.ttf',
-    inputType : 'image',
+    inputType : 'text',
     mainCanvas : null,
     srcImage : null,
     font : null,
     fontSize : 200,
     displayText : "liquid",
     fontColor : [255,0,0],
-    canvasWidth : 800,
-    canvasHeight : 800,
+    canvasWidth : canvasDim,
+    canvasHeight : window.innerHeight,
     width : 512,
-    height : 512,
+    height : 512*(canvasDim/window.innerHeight),
 
     viewWindow : {
       dragStarted : false,
@@ -62,13 +62,9 @@ function App() {
     },
     imageScale : 1.0,
     backgroundColor : [0,0,255],
-    backgroundStyle : 0,
+    backgroundStyle : 1,
     gridThickness : 1.0,
     gridSize : 10
-  }
-
-  async function loadNewImage(){
-
   }
 
   const liquidPNG = new FlowCanvas(settings);
@@ -79,20 +75,20 @@ function App() {
     settings.p5Inst = p;
 
     p.setup = async () => {
-        settings.image = await p.loadImage(settings.imageLink);
-        settings.font = await p.loadFont(settings.fontLink);
-        settings.mainCanvas = p.createCanvas(settings.canvasWidth,settings.canvasHeight,p.WEBGL);
-        settings.mainCanvas.parent("sketch_canvas");
-        settings.srcImage = p.createFramebuffer({ width: settings.image.width, height: settings.image.height, textureFiltering: p.NEAREST, format: p.FLOAT});
-        settings.srcImage.begin();
-        p.image(settings.image,-settings.image.width/2,-settings.image.height/2,settings.image.width,settings.image.height);
-        settings.srcImage.end();
+      settings.image = await p.loadImage(settings.imageLink);
+      settings.font = await p.loadFont(settings.fontLink);
+      settings.mainCanvas = p.createCanvas(settings.canvasWidth,settings.canvasHeight,p.WEBGL);
+      settings.mainCanvas.parent("sketch_canvas");
+      settings.srcImage = p.createFramebuffer({ width: settings.image.width, height: settings.image.height, textureFiltering: p.NEAREST, format: p.FLOAT});
+      settings.srcImage.begin();
+      p.image(settings.image,-settings.image.width/2,-settings.image.height/2,settings.image.width,settings.image.height);
+      settings.srcImage.end();
 
-        //init after setup() is called so that the p5 instance, font, and main canvas can be passed into liquidPNG
-        liquidPNG.init();
+      //init after setup() is called so that the p5 instance, font, and main canvas can be passed into liquidPNG
+      liquidPNG.init();
     }
     p.draw = () => {
-        liquidPNG.render();
+      liquidPNG.render();
     }
     p.mouseReleased = () =>{
         if(p.keyIsDown(p.SHIFT)){
@@ -146,9 +142,9 @@ function App() {
             }
         }
     }
-    // p.windowResized = () => {
+    // p.windowResized = (e) => {
     //   const minimumDim = p.min(p.windowWidth - 200, p.windowHeight)
-    //   p.resizeCanvas(minimumDim,minimumDim);
+    //   p.resizeCanvas(100,100);
     // }
     return () => {
         p.remove();

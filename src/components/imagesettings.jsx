@@ -6,7 +6,7 @@ import LiquidCheckbox from './checkbox.jsx'
 import LiquidFilePicker from './filepicker.jsx'
 import LiquidTextBox from './textbox.jsx'
 
-function LiquidImageSettings({settings,liquidPNGInstance}){
+function LiquidImageSettings({parentCallback,settings,liquidPNGInstance}){
 
     const [inputType,setInputType] = useState(settings.inputType);
 
@@ -31,6 +31,7 @@ function LiquidImageSettings({settings,liquidPNGInstance}){
             }
         }
         setInputType(val);
+        parentCallback(val);
     }
 
     if(inputType == 'image'){
@@ -50,7 +51,7 @@ function LiquidImageSettings({settings,liquidPNGInstance}){
             <LiquidSlider callback = {(val) => {settings.imageScale = val}} label = {"scale"} min = {"0.0"} max = {"10.0"} stepsize = {"0.01"} defaultValue = {settings.imageScale}/>
             <LiquidTextBox className = "text_input_box" callback = {(event) => {settings.displayText = event.target.value;liquidPNGInstance.loadText(settings.displayText);}}></LiquidTextBox>
             <LiquidSlider callback = {(val) => {settings.fontSize = parseInt(val); liquidPNGInstance.loadText(settings.displayText);}} label = {"font size"} min = {"1"} max = {"200"} stepsize = {"1"} defaultValue = {settings.fontSize}/>
-            <LiquidColorPicker callback = {(val) => {val = hexToRgb(val); settings.fontColor = [val.r,val.g,val.b];liquidPNGInstance.loadText(liquidPNGInstance.currentText);}} defaultValue = {'#ff0000'} label = {"text color"}></LiquidColorPicker>
+            <LiquidColorPicker callback = {(val) => {val = hexToRgb(val); settings.fontColor = [val.r,val.g,val.b];liquidPNGInstance.loadText(liquidPNGInstance.currentText);}} defaultValue = {'#ff0000'} label = {"color"}></LiquidColorPicker>
             </>
         );
     }

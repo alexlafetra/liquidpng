@@ -1,12 +1,13 @@
-
+import Textarea from '@mui/joy/Textarea';
 
 function LiquidTextBox({callback}){
     return(
         <>
-        {/* <input type = "text" id = "input_text"
+        <Textarea onInput = {callback} placeholder = "Liquid" variant="outlined"></Textarea>
+        {/* <input type = "text" className = "liquid_text_box"
             onInput    = {callback}
             /> */}
-            <textarea onInput = {callback}></textarea>
+            {/* <textarea onInput = {callback}></textarea> */}
         </>
     )
 }

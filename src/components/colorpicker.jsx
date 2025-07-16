@@ -1,20 +1,19 @@
 import { useState } from 'react'
+import { HexColorPicker } from "react-colorful";
 
 function LiquidColorPicker({label,callback,id,defaultValue}){
 
     const [value,setValue] = useState(defaultValue);
 
-    const callbackFn = (event) => {
-        callback(event.target.value);
-        setValue(event.target.value);
+    const callbackFn = (hexColor) => {
+        callback(hexColor);
+        setValue(hexColor);
     }
 
     return(
-        <div className = "liquid_png_settings_colorpicker">
+        <div className = "liquid_color_picker">
         <span className = "slider_label">{label}</span>
-        <input type = "color" id = {id} value = {value}
-            onInput  = {callbackFn}
-            />
+        <HexColorPicker onChange={callbackFn} color = {defaultValue}></HexColorPicker>
         </div>
     )
 }

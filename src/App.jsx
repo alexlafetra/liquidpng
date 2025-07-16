@@ -9,6 +9,7 @@ import LiquidUIContainer from './components/ui.jsx'
 
 function App() {
   const settings = {
+    hideUI : false,
     imageLink : './test.jpg',
     fontLink : './times.ttf',
     inputType : 'text',
@@ -91,7 +92,7 @@ function App() {
       liquidPNG.render();
     }
     p.mouseReleased = () =>{
-        if(p.keyIsDown(p.SHIFT)){
+        if(p.keyIsDown(p.SHIFT) || p.touches.length > 1){
             if(settings.viewWindow.dragStarted){
                 settings.viewWindow.end = {x:p.mouseX,y:p.mouseY}
                 const dX = settings.viewWindow.end.x - settings.viewWindow.start.x;
@@ -114,7 +115,7 @@ function App() {
     }
     p.mouseDragged = () =>{
         if(p.mouseX < settings.mainCanvas.width && p.mouseY < settings.mainCanvas.height && p.mouseX > 0 && p.mouseY > 0){
-            if(p.keyIsDown(p.SHIFT)){
+            if(p.keyIsDown(p.SHIFT)  || p.touches.length > 1){
                 if(!settings.viewWindow.dragStarted){
                     settings.viewWindow.dragStarted = true;
                     settings.viewWindow.start = {x:p.mouseX,y:p.mouseY};

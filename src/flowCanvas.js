@@ -37,8 +37,7 @@ class FlowCanvas{
     }
     loadText(t){
 
-        this.currentText = t;
-        if(this.currentText === null || this.currentText == ""){
+        if(t === null || t == ""){
             return;
         }
 
@@ -50,25 +49,30 @@ class FlowCanvas{
         this.p5.textSize(this.settings.fontSize);
         this.p5.textAlign(this.p5.CENTER);
 
-        //get text bounds
-        const bounds = this.settings.font.textBounds(this.currentText);
-        if(bounds.h > bounds.w){
-            bounds.w = bounds.h;
+        const oldBounds = this.settings.font.textBounds(this.currentText);
+        const bounds = this.settings.font.textBounds(t);
+        //check if bounds are different (you might need to resize the fbo)
+        if(oldBounds.h != bounds.h && oldBounds.w != bounds.w){
+            //get text bounds
+            if(bounds.h > bounds.w){
+                bounds.w = bounds.h;
+             }
+            else{
+                bounds.h = bounds.w;
+            }
+            this.settings.srcImage = this.p5.createFramebuffer({ width: bounds.w+100, height: bounds.h+100, textureFiltering: this.p5.NEAREST, format: this.p5.FLOAT});
         }
-        else{
-            bounds.h = bounds.w;
-        }
-        this.settings.srcImage = this.p5.createFramebuffer({ width: bounds.w+100, height: bounds.h+100, textureFiltering: this.p5.NEAREST, format: this.p5.FLOAT});
         this.settings.srcImage.begin();
         this.p5.clear();
-        this.p5.text(this.currentText,0,0);
+        this.p5.text(t,0,0);
         this.settings.srcImage.end();
+        this.currentText = t;
     }
     updateFlow(){
         this.flowFieldCanvas.begin();
         this.p5.clear();
         this.p5.shader(this.flowFieldShader);
-        this.flowFieldShader.setUniform('uClampFloats',this.settings.clampNoise);
+        this.flowFieldShader.setUniform('uClampFloats',true);
         this.flowFieldShader.setUniform('uHighFrequencyNoiseScale',this.settings.highFNoise.scale);
         this.flowFieldShader.setUniform('uMediumFrequencyNoiseScale',this.settings.mediumFNoise.scale);
         this.flowFieldShader.setUniform('uLowFrequencyNoiseScale',this.settings.lowFNoise.scale);
@@ -156,9 +160,6 @@ class FlowCanvas{
                 // optimized away.
                 vec2 u = f * f * (3.0 - 2.0 * f);
                 float val = mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
-                if(uClampFloats){
-                    val = clamp(val,0.0,1.0);
-                }
                 return val;
             }
             void main() {
@@ -168,7 +169,6 @@ class FlowCanvas{
                 float g =   uLowFrequencyNoiseAmplitude * (noise(vPosition.yx*uLowFrequencyNoiseScale + uNoiseOffset.yx) - 0.5) + 
                             uMediumFrequencyNoiseAmplitude * (noise(vPosition.yx*uMediumFrequencyNoiseScale + uNoiseOffset.yx) - 0.5) +
                             uHighFrequencyNoiseAmplitude * (noise(vPosition.yx*uHighFrequencyNoiseScale + uNoiseOffset.yx) - 0.5);
-
                 fragColor = vec4(r,g,r*g,1.0);
             }
             `

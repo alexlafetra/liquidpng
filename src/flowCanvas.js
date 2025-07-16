@@ -68,6 +68,7 @@ class FlowCanvas{
         this.flowFieldCanvas.begin();
         this.p5.clear();
         this.p5.shader(this.flowFieldShader);
+        this.flowFieldShader.setUniform('uClampFloats',this.settings.clampNoise);
         this.flowFieldShader.setUniform('uHighFrequencyNoiseScale',this.settings.highFNoise.scale);
         this.flowFieldShader.setUniform('uMediumFrequencyNoiseScale',this.settings.mediumFNoise.scale);
         this.flowFieldShader.setUniform('uLowFrequencyNoiseScale',this.settings.lowFNoise.scale);
@@ -128,6 +129,9 @@ class FlowCanvas{
             uniform float uMediumFrequencyNoiseAmplitude;
             uniform float uHighFrequencyNoiseAmplitude;
             uniform float uHighFrequencyNoiseScale;
+
+            uniform bool uClampFloats;
+
             in vec2 vPosition;
             out vec4 fragColor;
 
@@ -151,7 +155,11 @@ class FlowCanvas{
                 // Same code, with the clamps in smoothstep and common subexpressions
                 // optimized away.
                 vec2 u = f * f * (3.0 - 2.0 * f);
-                return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
+                float val = mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
+                if(uClampFloats){
+                    val = clamp(val,0.0,1.0);
+                }
+                return val;
             }
             void main() {
                 float r =   uLowFrequencyNoiseAmplitude * (noise(vPosition*uLowFrequencyNoiseScale + uNoiseOffset) - 0.5)+ 

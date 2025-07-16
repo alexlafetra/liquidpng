@@ -59,6 +59,7 @@ function App() {
       amplitude:0.05,
       scale:1000.0
     },
+    clampNoise:true,
     imageScale : 1.0,
     backgroundColor : [0,0,255],
     backgroundStyle : 0,

@@ -19,7 +19,7 @@ html{
     position:absolute;
     left:0;
     top:0;
-    /* pointer-events:none; */
+    pointer-events:none;
 }
 /* UI */
 .ui_container{
@@ -30,18 +30,18 @@ html{
     height:100%;
     overflow-y: scroll;
     overflow-x: hidden;
-    /* width:180px; */
     margin-left:20px;
 }
 .control_header{
     text-align:left;
     font-size: 15pt;
     font-family:'Times New Roman', Times, serif;
+    color:#000000;
 }
 .slider_label{
     font-family: monospace;
     font-size:10pt;
-    color:#606060;
+    color:#000000;
 }
 .text_input_box{
     color:black;
@@ -51,6 +51,42 @@ html{
 .liquid_checkbox{
     cursor:pointer;
     font-family: monospace;
+    width:fit-content;
+}
+
+/* slider code adapted from: https://www.w3schools.com/howto/howto_js_rangeslider.asp and https://blog.logrocket.com/creating-custom-css-range-slider-javascript-upgrades/ */
+.liquid_slider_container{
+    width: 100px;
+}
+
+.liquid_slider_label{
+    position:absolute;
+    font-family: monospace;
+    pointer-events:none;
+    z-index:1;
+    color:#000000;
+    padding:8px;
+    cursor:pointer;
+}
+/* The slider itself */
+.liquid_slider {
+    -webkit-appearance: none;  /* Override default CSS styles */
+    appearance: none;
+    width: 100%; /* Full-width */
+    height: 30px; /* Specified height */
+    background:#ffffff;
+    outline: none; /* Remove outline */
+    overflow: hidden;
+    cursor:pointer;
+}
+/* The slider handle (use -webkit- (Chrome, Opera, Safari, Edge) and -moz- (Firefox) to override default look) */
+.liquid_slider::-webkit-slider-thumb {
+    -webkit-appearance: none; /* Override default look */
+    appearance: none;
+    width: 10px; /* Set a specific slider handle width */
+    height: 30px; /* Slider handle height */
+    background: #ff0000;
+    box-shadow: -407px 0 0 400px rgb(255, 0, 0);
 }
 
 

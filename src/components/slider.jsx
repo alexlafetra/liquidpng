@@ -10,10 +10,9 @@ function LiquidSlider({label,callback,id,min,max,stepsize,defaultValue}){
     }
 
     return(
-        <div className = "liquid_png_settings_slider">
-        <span className = "slider_label">{label + ":" + value}</span>
-        <br/>
-        <input type = "range" id = {id} min = {min} max = {max} step = {stepsize} value = {value}
+        <div className = "liquid_slider_container">
+        <span className = "liquid_slider_label">{label + ":" + value}</span>
+        <input className = "liquid_slider" type = "range" id = {id} min = {min} max = {max} step = {stepsize} value = {value}
             onInput  = {callbackFn}
             />
         </div>

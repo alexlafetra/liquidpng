@@ -38,7 +38,7 @@ function LiquidImageSettings({parentCallback,settings,liquidPNGInstance}){
         return(
             <>
             <LiquidDropdown callback = {callback} options = {options} defaultValue = {settings.inputType}></LiquidDropdown>
-            <LiquidFilePicker id = "image_selector" callback = {(fname) => {liquidPNGInstance.loadNewImage(fname);}}></LiquidFilePicker>
+            {/* <LiquidFilePicker id = "image_selector" callback = {(fname) => {liquidPNGInstance.loadNewImage(fname);}}></LiquidFilePicker> */}
             <LiquidSlider callback = {(val) => {settings.imageScale = val}} label = {"scale"} min = {"0.0"} max = {"10.0"} stepsize = {"0.01"} defaultValue = {settings.imageScale}/>
             </>
         );

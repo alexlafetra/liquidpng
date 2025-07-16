@@ -27,7 +27,7 @@ input{
 }
 /* Canvas */
 .canvas_container{
-    z-index:-1;
+    z-index:0;
     height:100%;
     padding: 0;
     margin: 0;
@@ -35,11 +35,12 @@ input{
     position:absolute;
     left:0;
     top:0;
-    pointer-events:none;
-    background-color:white;
+    background-color:#ffffff;
+    /* background-color:white; */
 }
 /* UI */
 .ui_container{
+    z-index:2;
     display:block;
     position:absolute;
     left:0;
@@ -48,27 +49,38 @@ input{
     overflow-y: scroll;
     overflow-x: hidden;
     margin-left:20px;
+    mix-blend-mode:difference;
 }
 .control_header{
     text-align:left;
     font-size: 15pt;
     font-family:'Times New Roman', Times, serif;
-    color:#000000;
+    color:#ffffff;
+    mix-blend-mode:difference;
 }
-.slider_label{
+.control_label{
     font-family: monospace;
     font-size:10pt;
-    color:#000000;
+    color:#ffffff;
+    mix-blend-mode: difference;
 }
-.text_input_box{
+.liquid_text_box{
     color:black;
     border:none;
     background-color:transparent;
+    border-radius:0px;
 }
 .liquid_checkbox{
     cursor:pointer;
     font-family: monospace;
     width:fit-content;
+}
+
+.liquid_button{
+    font-family: monospace;
+    color:#ffffff;
+    background-color: #000000;
+    cursor:pointer;
 }
 
 /* slider code adapted from: https://www.w3schools.com/howto/howto_js_rangeslider.asp and https://blog.logrocket.com/creating-custom-css-range-slider-javascript-upgrades/ */
@@ -81,9 +93,10 @@ input{
     font-family: monospace;
     pointer-events:none;
     z-index:1;
-    color:#000000;
+    color:#ffffff;
     padding:8px;
     cursor:pointer;
+    mix-blend-mode:difference;
 }
 /* The slider itself */
 .liquid_slider {
@@ -91,7 +104,7 @@ input{
     appearance: none;
     width: 100%; /* Full-width */
     height: 30px; /* Specified height */
-    background:#ffffff;
+    background:transparent;
     outline: none; /* Remove outline */
     overflow: hidden;
     cursor:pointer;
@@ -100,10 +113,10 @@ input{
 .liquid_slider::-webkit-slider-thumb {
     -webkit-appearance: none; /* Override default look */
     appearance: none;
-    width: 10px; /* Set a specific slider handle width */
+    width: 30px; /* Set a specific slider handle width */
     height: 30px; /* Slider handle height */
-    background: #ff0000;
-    box-shadow: -407px 0 0 400px rgb(255, 0, 0);
+    background: #000000;
+    box-shadow: -407px 0 0 400px rgb(0, 0, 0);
 }
 
 .liquid_color_picker .react-colorful{

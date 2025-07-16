@@ -8,6 +8,15 @@ import './main.css';
 import LiquidUIContainer from './components/ui.jsx'
 
 function App() {
+  let w,h;
+  if(window.innerWidth>window.innerHeight){
+    w = 512;
+    h = window.innerWidth/window.innerHeight * 512;
+  }
+  else{
+    h = 512;
+    w = window.innerHeight/window.innerWidth * 512;
+  }
   const settings = {
     hideUI : false,
     imageLink : './test.jpg',
@@ -21,8 +30,8 @@ function App() {
     fontColor : [255,0,0],
     canvasWidth : window.innerWidth,
     canvasHeight : window.innerHeight,
-    width : 512,
-    height : 512*(window.innerWidth/window.innerHeight),
+    width : w,
+    height : h,
 
     viewWindow : {
       dragStarted : false,
@@ -60,7 +69,7 @@ function App() {
       amplitude:0.05,
       scale:1000.0
     },
-    clampNoise:true,
+    clampNoise:false,
     imageScale : 1.0,
     backgroundColor : [0,0,255],
     backgroundStyle : 0,
@@ -80,7 +89,8 @@ function App() {
       settings.font = await p.loadFont(settings.fontLink);
       settings.mainCanvas = p.createCanvas(settings.canvasWidth,settings.canvasHeight,p.WEBGL);
       settings.mainCanvas.parent("sketch_canvas");
-      settings.srcImage = p.createFramebuffer({ width: settings.image.width, height: settings.image.height, textureFiltering: p.NEAREST, format: p.FLOAT});
+      // settings.srcImage = p.createFramebuffer({ width: settings.image.width, height: settings.image.height, textureFiltering: p.NEAREST, format: p.FLOAT});
+      settings.srcImage = p.createFramebuffer({ width: settings.image.width, height: settings.image.height, textureFiltering: p.NEAREST});
       settings.srcImage.begin();
       p.image(settings.image,-settings.image.width/2,-settings.image.height/2,settings.image.width,settings.image.height);
       settings.srcImage.end();
@@ -101,6 +111,7 @@ function App() {
                 settings.viewWindow.origin.y += dY;
             }
             settings.viewWindow.dragStarted = false;
+            // liquidPNG.loadText("two touches"); 
         }
         else{
             if(settings.noiseWindow.dragStarted){
@@ -127,6 +138,7 @@ function App() {
                     settings.viewWindow.offset.x = dX + settings.viewWindow.origin.x;
                     settings.viewWindow.offset.y = dY+ settings.viewWindow.origin.y;
                 }
+                // liquidPNG.loadText("two touches"); 
             }
             else{
                 if(!settings.noiseWindow.dragStarted){
@@ -176,7 +188,7 @@ function App() {
 
     }
   }
-  const noiseDisplay = new p5(noiseDisplaySketch,"noise_canvas");
+  // const noiseDisplay = new p5(noiseDisplaySketch,"noise_canvas");
   const p5Reference = new p5(mainSketch,"sketch_canvas");
 
   return (

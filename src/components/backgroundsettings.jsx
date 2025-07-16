@@ -46,7 +46,7 @@ function LiquidBackgroundSettings({settings}){
             return(
                 <>
                 <LiquidDropdown callback = {callback} label = {"style"} options = {options} defaultValue = {"clear"}></LiquidDropdown>
-                <LiquidColorPicker callback = {(val) => {val = hexToRgb(val); settings.backgroundColor = [val.r/255.0,val.g/255.0,val.b/255.0];}} defaultValue = {'#0000ff'} label = {"background color"}></LiquidColorPicker>
+                <LiquidColorPicker callback = {(val) => {val = hexToRgb(val); settings.backgroundColor = [val.r/255.0,val.g/255.0,val.b/255.0];}} defaultValue = {'#0000ff'}></LiquidColorPicker>
                 </>
             );
         //grid background
@@ -55,7 +55,7 @@ function LiquidBackgroundSettings({settings}){
                 <>
                 <LiquidDropdown callback = {callback} label = {"style"} options = {options} defaultValue = {"clear"}></LiquidDropdown>
                 <LiquidColorPicker callback = {(val) => {val = hexToRgb(val); settings.gridColor = [val.r/255.0,val.g/255.0,val.b/255.0];}} defaultValue = {'#ff0000'} label = {"grid color"}></LiquidColorPicker>
-                <LiquidColorPicker callback = {(val) => {val = hexToRgb(val); settings.backgroundColor = [val.r/255.0,val.g/255.0,val.b/255.0];}} defaultValue = {'#0000ff'} label = {"background color"}></LiquidColorPicker>
+                <LiquidColorPicker callback = {(val) => {val = hexToRgb(val); settings.backgroundColor = [val.r/255.0,val.g/255.0,val.b/255.0];}} defaultValue = {'#0000ff'}></LiquidColorPicker>
                 <LiquidSlider callback = {(val) => {settings.gridThickness = val;}} label = {"thickness"} min = {"0.0"} max = {"0.05"} stepsize = {"0.001"} defaultValue = {settings.gridThickness}/>
                 <LiquidSlider callback = {(val) => {settings.gridSize = val;}} label = {"size"} min = {"0.0"} max = {"20.0"} stepsize = {"1.0"} defaultValue = {settings.gridSize}/>
                 </>
@@ -65,7 +65,7 @@ function LiquidBackgroundSettings({settings}){
             return(
                 <>
                 <LiquidDropdown callback = {callback} label = {"style"} options = {options} defaultValue = {"clear"}></LiquidDropdown>
-                <LiquidColorPicker callback = {(val) => {val = hexToRgb(val); settings.backgroundColor = [val.r/255.0,val.g/255.0,val.b/255.0];}} defaultValue = {'#0000ff'} label = {"background color"}></LiquidColorPicker>
+                <LiquidColorPicker callback = {(val) => {val = hexToRgb(val); settings.backgroundColor = [val.r/255.0,val.g/255.0,val.b/255.0];}} defaultValue = {'#0000ff'}></LiquidColorPicker>
                 <LiquidSlider callback = {(val) => {settings.gridThickness = val;}} label = {"thickness"} min = {"0.0"} max = {"0.05"} stepsize = {"0.001"} defaultValue = {settings.gridThickness}/>
                 <LiquidSlider callback = {(val) => {settings.gridSize = val;}} label = {"size"} min = {"0.0"} max = {"20.0"} stepsize = {"1.0"} defaultValue = {settings.gridSize}/>
                 </>

@@ -3,11 +3,20 @@ class FlowCanvas{
         this.settings = settings;
         this.currentText = "liquid";
     }
+    saveImage(){
+        this.render();
+        console.log(this.settings.mainCanvas);
+        let dataURL = this.settings.mainCanvas.elt.toDataURL('image/png');
+        let a = document.createElement('a');
+        a.href = dataURL;
+        a.download = 'liquid.png';
+        a.click();
+    }
     init(){
         this.p5 = this.settings.p5Inst;
         this.mainCanvas = this.settings.mainCanvas;
         //holds the flow field
-        this.flowFieldCanvas = this.p5.createFramebuffer({ width: this.settings.width, height: this.settings.height, textureFiltering: this.p5.NEAREST, format: this.p5.FLOAT});
+        this.flowFieldCanvas = this.p5.createFramebuffer({ width: this.settings.width, height: this.settings.height, textureFiltering: this.p5.NEAREST, format: this.settings.clampNoise?this.p5.UNSIGNED_BYTE:this.p5.FLOAT});
         this.outputCanvas = this.p5.createFramebuffer({ width: this.settings.width, height: this.settings.height, textureFiltering: this.p5.NEAREST, format: this.p5.FLOAT});
         this.flowFieldShader = this.createFlowFieldShader(this.p5);
         this.outputShader = this.createOutputShader();

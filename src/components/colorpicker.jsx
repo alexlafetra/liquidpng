@@ -12,7 +12,7 @@ function LiquidColorPicker({label,callback,id,defaultValue}){
 
     return(
         <div className = "liquid_color_picker">
-        <span className = "slider_label">{label}</span>
+        <span className = "control_label">{label}</span>
         <HexColorPicker onChange={callbackFn} color = {defaultValue}></HexColorPicker>
         </div>
     )

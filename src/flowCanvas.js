@@ -228,14 +228,14 @@ class FlowCanvas{
                 //grid
                 else if(uBackgroundStyle == 2){
                     if(imageColor.a != 0.0){
-                        fragColor = imageColor;
+                        fragColor = vec4(uBackgroundColor,1.0)*(1.0 - imageColor.a) + imageColor;
                     }
                     else{
                         if(alpha < (1.0 / uGridSize - uGridThickness)){
                             fragColor = imageColor;
                         }
                         else{
-                            fragColor = vec4(uBackgroundColor,1.0)+imageColor;
+                            fragColor = vec4(uBackgroundColor,1.0)*(1.0 - imageColor.a) + imageColor;
                         }
                     }
                 }

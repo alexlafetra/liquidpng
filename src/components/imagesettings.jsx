@@ -46,9 +46,9 @@ function LiquidImageSettings({settings,liquidPNGInstance}){
         return(
             <>
             <LiquidDropdown callback = {callback} options = {options} defaultValue = {settings.inputType}></LiquidDropdown>
-            <LiquidDropdown callback = {async (val) => {settings.fontLink = val; settings.font = await settings.p5Inst.loadFont(settings.fontLink);liquidPNGInstance.reloadText();}} options = {['times.ttf','arial.ttf']} defaultValue = {settings.inputType}></LiquidDropdown>
+            <LiquidDropdown callback = {async (val) => {settings.fontLink = val; settings.font = await settings.p5Inst.loadFont(settings.fontLink);liquidPNGInstance.reloadText();}} options = {['times.ttf','arial.ttf','chopin.ttf']} defaultValue = {settings.inputType}></LiquidDropdown>
             <LiquidSlider callback = {(val) => {settings.imageScale = val}} label = {"scale"} min = {"0.0"} max = {"10.0"} stepsize = {"0.01"} defaultValue = {settings.imageScale}/>
-            <LiquidTextBox callback = {(event) => {settings.displayText = event.target.value;liquidPNGInstance.loadText(settings.displayText);}}></LiquidTextBox>
+            <LiquidTextBox className = "text_input_box" callback = {(event) => {settings.displayText = event.target.value;liquidPNGInstance.loadText(settings.displayText);}}></LiquidTextBox>
             <LiquidSlider callback = {(val) => {settings.fontSize = parseInt(val); liquidPNGInstance.loadText(settings.displayText);}} label = {"font size"} min = {"1"} max = {"500"} stepsize = {"1"} defaultValue = {settings.fontSize}/>
             <LiquidColorPicker callback = {(val) => {val = hexToRgb(val); settings.fontColor = [val.r,val.g,val.b];liquidPNGInstance.loadText(liquidPNGInstance.currentText);}} defaultValue = {'#ff0000'} label = {"text color"}></LiquidColorPicker>
             </>

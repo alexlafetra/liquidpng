@@ -8,7 +8,6 @@ import './main.css';
 import LiquidUIContainer from './components/ui.jsx'
 
 function App() {
-  const canvasDim = Math.min(window.innerWidth - 250,window.innerHeight);
   const settings = {
     imageLink : './test.jpg',
     fontLink : './times.ttf',
@@ -19,10 +18,10 @@ function App() {
     fontSize : 200,
     displayText : "liquid",
     fontColor : [255,0,0],
-    canvasWidth : canvasDim,
+    canvasWidth : window.innerWidth,
     canvasHeight : window.innerHeight,
     width : 512,
-    height : 512*(canvasDim/window.innerHeight),
+    height : 512*(window.innerWidth/window.innerHeight),
 
     viewWindow : {
       dragStarted : false,
@@ -53,17 +52,17 @@ function App() {
     mediumFNoise:{
       active : false,
       amplitude:1.0,
-      scale:1.0
+      scale:3.0
     },
     highFNoise:{
       active : false,
-      amplitude:1.0,
+      amplitude:0.05,
       scale:1000.0
     },
     imageScale : 1.0,
     backgroundColor : [0,0,255],
-    backgroundStyle : 1,
-    gridThickness : 1.0,
+    backgroundStyle : 0,
+    gridThickness : 0.001,
     gridSize : 10
   }
 

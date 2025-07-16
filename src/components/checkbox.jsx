@@ -1,9 +1,13 @@
-function LiquidCheckbox({defaultState,callback}){
+import { useState } from "react";
+
+function LiquidCheckbox({title,defaultState,callback}){
+    const [state,setState] = useState(defaultState);
     const componentCallback = (e) =>{
-        callback(e.target.checked);
+        callback(!state);
+        setState(!state);
     }
     return(
-        <input className = "liquid_checkbox" onChange = {componentCallback}type="checkbox" name="vehicle1" checked={defaultState}/>
+        <div className = "liquid_checkbox"  onClick = {componentCallback}><span className = "control_header">{title}</span> [{state?"x":"  "}]</div>
     )
 }
 export default LiquidCheckbox;

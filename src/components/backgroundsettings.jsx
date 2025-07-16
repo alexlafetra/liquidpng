@@ -10,10 +10,7 @@ function LiquidBackgroundSettings({settings}){
     function hexToRgb(hex) {
         const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
         if(result){
-          const c = {r: parseInt(result[1], 16),g: parseInt(result[2], 16),b: parseInt(result[3], 16)}
-          // console.log("hex:" + hex);
-          // console.log("rgb:");
-          // console.log(c);
+          const c = {r: parseInt(result[1], 16),g: parseInt(result[2], 16),b: parseInt(result[3], 16)};
           return c;
         }
         return null;
@@ -57,13 +54,20 @@ function LiquidBackgroundSettings({settings}){
             return(
                 <>
                 <LiquidDropdown callback = {callback} label = {"style"} options = {options} defaultValue = {"clear"}></LiquidDropdown>
+                <LiquidColorPicker callback = {(val) => {val = hexToRgb(val); settings.backgroundColor = [val.r/255.0,val.g/255.0,val.b/255.0];}} defaultValue = {'#0000ff'} label = {"background color"}></LiquidColorPicker>
                 <LiquidSlider callback = {(val) => {settings.gridThickness = val;}} label = {"thickness"} min = {"0.0"} max = {"0.05"} stepsize = {"0.001"} defaultValue = {settings.gridThickness}/>
                 <LiquidSlider callback = {(val) => {settings.gridSize = val;}} label = {"size"} min = {"0.0"} max = {"20.0"} stepsize = {"1.0"} defaultValue = {settings.gridSize}/>
                 </>
             );
+        //blur
         case 3:
             return(
+                <>
                 <LiquidDropdown callback = {callback} label = {"style"} options = {options} defaultValue = {"clear"}></LiquidDropdown>
+                <LiquidColorPicker callback = {(val) => {val = hexToRgb(val); settings.backgroundColor = [val.r/255.0,val.g/255.0,val.b/255.0];}} defaultValue = {'#0000ff'} label = {"background color"}></LiquidColorPicker>
+                <LiquidSlider callback = {(val) => {settings.gridThickness = val;}} label = {"thickness"} min = {"0.0"} max = {"0.05"} stepsize = {"0.001"} defaultValue = {settings.gridThickness}/>
+                <LiquidSlider callback = {(val) => {settings.gridSize = val;}} label = {"size"} min = {"0.0"} max = {"20.0"} stepsize = {"1.0"} defaultValue = {settings.gridSize}/>
+                </>
             );
     }
 }

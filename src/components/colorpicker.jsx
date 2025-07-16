@@ -11,8 +11,7 @@ function LiquidColorPicker({label,callback,id,defaultValue}){
 
     return(
         <div className = "liquid_png_settings_colorpicker">
-        <span className = "slider_label">{label + ":" + value}</span>
-        <br/>
+        <span className = "slider_label">{label}</span>
         <input type = "color" id = {id} value = {value}
             onInput  = {callbackFn}
             />

@@ -56,7 +56,7 @@ class FlowCanvas{
         this.p5.fill(this.settings.fontColor);
         this.p5.noStroke();
         this.p5.textSize(this.settings.fontSize);
-        this.p5.textAlign(this.p5.CENTER);
+        this.p5.textAlign(this.settings.centerText?this.p5.CENTER:this.p5.LEFT);
 
         const oldBounds = this.settings.font.textBounds(this.currentText);
         const bounds = this.settings.font.textBounds(t);

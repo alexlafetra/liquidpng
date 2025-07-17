@@ -1,5 +1,6 @@
 html{
     overflow:hidden;
+    background-color:transparent;
 }
 
 select{
@@ -17,17 +18,17 @@ input{
 }
 /* App */
 .app_container{
-    /* background-color: white; */
+    background-color: transparent;
     height:100vh;
     max-width:2000px;
     width:100%;
     font-family:'Times New Roman', Times, serif;
     transition:1s;
-    background: red;
 }
 /* Canvas */
 .canvas_container{
-    z-index:0;
+    background-color: transparent;
+    z-index:-1;
     height:100%;
     padding: 0;
     margin: 0;
@@ -35,12 +36,10 @@ input{
     position:absolute;
     left:0;
     top:0;
-    background-color:#ffffff;
-    /* background-color:white; */
 }
 /* UI */
 .ui_container{
-    z-index:1;
+    /* z-index:1; */
     display:block;
     position:absolute;
     left:0;
@@ -49,8 +48,7 @@ input{
     overflow-y: scroll;
     overflow-x: hidden;
     margin-left:20px;
-    /* mix-blend-mode:difference; */
-    /* background-color: #000000;s */
+    background-color: transparent;
 }
 .control_header{
     text-align:left;
@@ -68,13 +66,13 @@ input{
 .liquid_text_box{
     color:black;
     border:none;
-    background-color:transparent;
     border-radius:0px;
 }
 .liquid_checkbox{
     cursor:pointer;
     font-family: monospace;
     width:fit-content;
+    /* background-color: black; */
 }
 
 .liquid_button{
@@ -82,6 +80,7 @@ input{
     color:#ffffff;
     background-color: #000000;
     cursor:pointer;
+    /* mix-blend-mode: normal; */
 }
 
 /* slider code adapted from: https://www.w3schools.com/howto/howto_js_rangeslider.asp and https://blog.logrocket.com/creating-custom-css-range-slider-javascript-upgrades/ */
@@ -98,6 +97,7 @@ input{
     padding:8px;
     cursor:pointer;
     mix-blend-mode:difference;
+    background-color: transparent;
 }
 /* The slider itself */
 .liquid_slider {
@@ -105,7 +105,7 @@ input{
     appearance: none;
     width: 100%; /* Full-width */
     height: 30px; /* Specified height */
-    background:transparent;
+    background-color:transparent;
     outline: none; /* Remove outline */
     overflow: hidden;
     cursor:pointer;

@@ -27,7 +27,7 @@ function App() {
     font : null,
     fontSize : 200,
     displayText : "liquid",
-    centerText : false,
+    centerText : true,
     fontColor : [255,0,0],
     canvasWidth : window.innerWidth,
     canvasHeight : window.innerHeight,

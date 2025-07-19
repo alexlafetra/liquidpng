@@ -1,7 +1,7 @@
 class FlowCanvas{
     constructor(settings){
         this.settings = settings;
-        this.currentText = "liquid";
+        this.currentText = settings.displayText;
     }
     saveImage(){
         this.render();
@@ -36,6 +36,7 @@ class FlowCanvas{
     }
     loadImage(im){
         this.settings.image = im;
+        this.settings.srcImage = this.p5.createFramebuffer({ width: this.settings.image.width, height: this.settings.image.height, textureFiltering: this.p5.NEAREST, format: this.p5.FLOAT});
         this.settings.srcImage.begin();
         this.p5.clear();
         this.p5.image(im,-im.width/2,-im.height/2,im.width,im.height);
@@ -43,6 +44,31 @@ class FlowCanvas{
     }
     reloadText(){
         this.loadText(this.currentText);
+    }
+    getTextBounds(t){
+        //obj to store bounds
+        const bounds = {
+            width : 0,
+            height : 0
+        };
+
+        //split text by newline character to get each line
+        let splitText = t.split(/\r?\n/);
+
+        //get length of each line to find the widest
+        for(let line of splitText){
+            let b = this.p5.fontBounds(line,0,0);
+            if(b.w > bounds.width){
+                bounds.width = b.w;
+            }
+        }
+        //add in the textLeading() val for each line height
+        bounds.height += splitText.length * this.p5.textLeading();
+
+        //round the bounds UP
+        bounds.height = Math.ceil(bounds.height);
+        bounds.width = Math.ceil(bounds.width);
+        return bounds;
     }
     loadText(t){
 
@@ -52,28 +78,18 @@ class FlowCanvas{
 
         //set font settings
         this.p5.textFont(this.settings.font);
-        // console.log(this.settings.fontColor);
-        this.p5.fill(this.settings.fontColor);
+        this.p5.fill(0,0,0);
         this.p5.noStroke();
         this.p5.textSize(this.settings.fontSize);
-        this.p5.textAlign(this.settings.centerText?this.p5.CENTER:this.p5.LEFT);
+        this.p5.textAlign(this.p5.LEFT,this.p5.TOP);
 
-        const oldBounds = this.settings.font.textBounds(this.currentText);
-        const bounds = this.settings.font.textBounds(t);
-        //check if bounds are different (you might need to resize the fbo)
-        if(oldBounds.h != bounds.h && oldBounds.w != bounds.w){
-            //get text bounds
-            if(bounds.h > bounds.w){
-                bounds.w = bounds.h;
-             }
-            else{
-                bounds.h = bounds.w;
-            }
-            this.settings.srcImage = this.p5.createFramebuffer({ width: bounds.w+100, height: bounds.h+100, textureFiltering: this.p5.NEAREST, format: this.p5.FLOAT});
-        }
+        const bounds = this.getTextBounds(t,0,0);
+
+        this.settings.srcImage = this.p5.createFramebuffer({ width: bounds.width, height: bounds.height, textureFiltering: this.p5.NEAREST, format: this.p5.FLOAT});
+
         this.settings.srcImage.begin();
         this.p5.clear();
-        this.p5.text(t,0,0);
+        this.p5.text(t,-bounds.width/2,-bounds.height/2);
         this.settings.srcImage.end();
         this.currentText = t;
     }
@@ -99,6 +115,10 @@ class FlowCanvas{
         this.p5.clear();
         this.p5.shader(this.outputShader);
         this.outputShader.setUniform('uTargetImage',this.settings.srcImage);
+        this.outputShader.setUniform('uImageProportionFactor',[this.settings.mainCanvas.height/this.settings.mainCanvas.width,this.settings.srcImage.height/this.settings.srcImage.width]);
+        this.outputShader.setUniform('uCoordinateOverflowStyle',(this.settings.imageCoordinateOverflow == 'extend')?0:((this.settings.imageCoordinateOverflow == 'wrap')?1:2));
+        this.outputShader.setUniform('uInputType',(this.settings.inputType == 'text')?0:1);
+        this.outputShader.setUniform('uTextColor',this.settings.fontColor);
         this.outputShader.setUniform('uImageScale',this.settings.imageScale);
         this.outputShader.setUniform('uFlowTexture',this.flowFieldCanvas);
         this.outputShader.setUniform('uBackgroundStyle',this.settings.backgroundStyle);
@@ -185,7 +205,7 @@ class FlowCanvas{
         return p5.createShader(shaderSource.vertexShader, shaderSource.fragmentShader);
     }
     createOutputShader(){
-            const shaderSource = {
+        const shaderSource = {
             vertexShader:`#version 300 es
             precision highp float;
             precision highp sampler2D;
@@ -207,28 +227,77 @@ class FlowCanvas{
             in vec2 vPosition;
             uniform sampler2D uFlowTexture;
             uniform sampler2D uTargetImage;
+            uniform vec2 uImageProportionFactor;
             uniform float uWarpAmount;
             uniform vec2 uViewOffset;
-            out vec4 fragColor;
             
             //value to scale the image by
             uniform float uImageScale;
             uniform float uGridSize;
             uniform float uGridThickness;
             uniform vec3 uBackgroundColor;
+            //image or text
+            uniform int uInputType;
+            uniform vec3 uTextColor;
 
             //0 is clear, 1 is solid color, 2 is grid
             uniform int uBackgroundStyle;
+            //0 is repeat, 1 is wrap, 2 is fill w/ transparency
+            uniform int uCoordinateOverflowStyle;
+
+            out vec4 fragColor;
 
             void main() {
                 vec4 sampleCoordinates = texture(uFlowTexture,vPosition) - 0.5 + vec4(uViewOffset,1.0,1.0);
-                vec2 warpedCoordinates = vec2(vPosition.x+sampleCoordinates.x * uWarpAmount,vPosition.y+sampleCoordinates.y * uWarpAmount);
+                vec2 warpedCoordinates = vPosition+sampleCoordinates.xy * uWarpAmount;
                 //centering the coordinates
-                vec2 adjustedCoordinates = (warpedCoordinates - 0.5)/uImageScale + 0.5;
+                float aR = uImageProportionFactor.x/uImageProportionFactor.y;
+                vec2 adjustedCoordinates = (warpedCoordinates - 0.5)/(uImageScale) + 0.5;
+                bool skipImage = false;
+                switch(uCoordinateOverflowStyle){
+                    //extend
+                    case 0:
+                        break;
+                    //wrap
+                    case 1:
+                        while(adjustedCoordinates.x > 1.0){
+                            adjustedCoordinates.x -= 1.0;
+                        }
+                        while(adjustedCoordinates.x < 0.0){
+                            adjustedCoordinates.x += 1.0;
+                        }
+                        while(adjustedCoordinates.y > 1.0){
+                            adjustedCoordinates.y -= 1.0;
+                        }
+                        while(adjustedCoordinates.y < 0.0){
+                            adjustedCoordinates.y += 1.0;
+                        }
+                        break;
+                    //fill w/ transparency
+                    case 2:
+                        if(adjustedCoordinates.x > 1.0 || adjustedCoordinates.y > 1.0 || adjustedCoordinates.x < 0.0 || adjustedCoordinates.y < 0.0){
+                            skipImage = true;
+                        }
+                }
                 //check if it's on a grid coordinate
                 float alpha = max(max(1.0 / uGridSize - mod(warpedCoordinates.x,1.0/uGridSize),mod(warpedCoordinates.x,1.0/uGridSize)),max(1.0 / uGridSize - mod(warpedCoordinates.y,1.0/uGridSize),mod(warpedCoordinates.y,1.0/uGridSize)));
                 vec4 gridColor = vec4(0.0,0.0,1.0,1.0);
-                vec4 imageColor = texture(uTargetImage,adjustedCoordinates);
+                vec4 imageColor;
+                if(!skipImage){
+                    //text
+                    if(uInputType == 0){
+                        vec4 tempColor = texture(uTargetImage,adjustedCoordinates);
+                        if(tempColor.a > 0.0){
+                            imageColor = vec4(uTextColor,tempColor.a);
+                        }
+                    }
+                    //image
+                    else if(uInputType == 1){
+                        imageColor = texture(uTargetImage,adjustedCoordinates);
+                    }
+                }
+                
+
                 //clear background
                 if(uBackgroundStyle == 0){
                     if(imageColor.a != 0.0 && !(imageColor.r >= 0.9 && imageColor.g >= 0.9 && imageColor.b >= 0.9)){
@@ -249,7 +318,7 @@ class FlowCanvas{
                     }
                     else{
                         if(alpha < (1.0 / uGridSize - uGridThickness)){
-                            fragColor = imageColor;
+                            fragColor = vec4(uBackgroundColor,1.0)*(1.0 - imageColor.a) + imageColor;
                         }
                         else{
                             fragColor = vec4(uBackgroundColor,1.0)*(1.0 - imageColor.a) + imageColor;
@@ -259,7 +328,7 @@ class FlowCanvas{
                 //blur
                 else if(uBackgroundStyle == 3){
                     if(imageColor.a != 0.0){
-                        fragColor = imageColor;
+                        fragColor = vec4(uBackgroundColor,1.0)*(1.0 - imageColor.a) + imageColor;
                     }
                     else{
                         fragColor = mix(vec4(uBackgroundColor,1.0),vec4(1.0),1.0 - (alpha * alpha * uGridSize));

@@ -8,17 +8,20 @@ import './main.css';
 import LiquidUIContainer from './components/ui.jsx'
 
 function App() {
+  const resolution = 800;
   let w,h;
   if(window.innerWidth>window.innerHeight){
-    w = 512;
-    h = window.innerWidth/window.innerHeight * 512;
+    w = resolution;
+    h = window.innerWidth/window.innerHeight * resolution;
   }
   else{
-    h = 512;
-    w = window.innerHeight/window.innerWidth * 512;
+    h = resolution;
+    w = window.innerHeight/window.innerWidth * resolution;
   }
   const settings = {
     hideUI : false,
+    //0 is extend (default), 1 is wrap, 2 is fill with transparency
+    imageCoordinateOverflow: 'discard',
     imageLink : './test.jpg',
     fontLink : './times.ttf',
     inputType : 'text',
@@ -26,7 +29,7 @@ function App() {
     srcImage : null,
     font : null,
     fontSize : 200,
-    displayText : "liquid",
+    displayText : "liquid.\npng",
     centerText : true,
     fontColor : [255,0,0],
     canvasWidth : window.innerWidth,
@@ -39,7 +42,7 @@ function App() {
       start : {x:0,y:0},
       end : {x:0,y:0},
       sensitivity : 1,
-      offset : {x:0,y:0},
+      offset : {x:w/2+75,y:h/2+100},
       origin: {x:0,y:0}
     },
     noiseWindow : {
@@ -156,10 +159,9 @@ function App() {
             }
         }
     }
-    // p.windowResized = (e) => {
-    //   const minimumDim = p.min(p.windowWidth - 200, p.windowHeight)
-    //   p.resizeCanvas(100,100);
-    // }
+    p.windowResized = (e) => {
+      p.resizeCanvas(window.innerWidth,window.innerHeight);
+    }
     return () => {
         p.remove();
     }

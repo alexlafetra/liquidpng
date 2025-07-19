@@ -1,19 +1,28 @@
 html{
     overflow:hidden;
     background-color:transparent;
+
+    -webkit-touch-callout: none; /* iOS Safari */
+    -webkit-user-select: none; /* Safari */
+     -khtml-user-select: none; /* Konqueror HTML */
+       -moz-user-select: none; /* Old versions of Firefox */
+        -ms-user-select: none; /* Internet Explorer/Edge */
+            user-select: none; /* Non-prefixed version, currently
+                                  supported by Chrome, Edge, Opera and Firefox */
 }
 
 select{
-    color:#ffffff;
+    color:#000000;
     font-family: monospace;
-    background-color: #000000;
+    background-color: #ffffff;
     font-size:10pt;
     border:none;
+    mix-blend-mode: difference;
 }
 input{
     color:#ffffff;
     font-family: monospace;
-    background-color: #000000;
+    background-color: #ffffff;
     font-size:10pt;
 }
 /* App */
@@ -49,38 +58,42 @@ input{
     overflow-x: hidden;
     margin-left:20px;
     background-color: transparent;
+    /* mix-blend-mode:difference; */
 }
 .control_header{
     text-align:left;
     font-size: 15pt;
     font-family:'Times New Roman', Times, serif;
     color:#ffffff;
+    background-color: transparent;
     mix-blend-mode:difference;
 }
 .control_label{
     font-family: monospace;
     font-size:10pt;
     color:#ffffff;
+    background-color: transparent;
     mix-blend-mode: difference;
 }
 .liquid_text_box{
-    color:black;
+    /* color:black; */
     border:none;
     border-radius:0px;
+    /* mix-blend-mode: difference; */
+    background-color:transparent;
 }
 .liquid_checkbox{
     cursor:pointer;
     font-family: monospace;
     width:fit-content;
-    /* background-color: black; */
 }
 
 .liquid_button{
     font-family: monospace;
-    color:#ffffff;
-    background-color: #000000;
+    color:#000000;
+    background-color: #ffffff;
     cursor:pointer;
-    /* mix-blend-mode: normal; */
+    mix-blend-mode: difference;
 }
 
 /* slider code adapted from: https://www.w3schools.com/howto/howto_js_rangeslider.asp and https://blog.logrocket.com/creating-custom-css-range-slider-javascript-upgrades/ */
@@ -109,6 +122,7 @@ input{
     outline: none; /* Remove outline */
     overflow: hidden;
     cursor:pointer;
+    mix-blend-mode:difference;
 }
 /* The slider handle (use -webkit- (Chrome, Opera, Safari, Edge) and -moz- (Firefox) to override default look) */
 .liquid_slider::-webkit-slider-thumb {
@@ -116,8 +130,8 @@ input{
     appearance: none;
     width: 30px; /* Set a specific slider handle width */
     height: 30px; /* Slider handle height */
-    background: #000000;
-    box-shadow: -407px 0 0 400px rgb(0, 0, 0);
+    background: #ffffff;
+    box-shadow: -407px 0 0 400px #ffffff;
 }
 
 .liquid_color_picker .react-colorful{

@@ -40,6 +40,7 @@ function LiquidImageSettings({parentCallback,settings,liquidPNGInstance}){
             <LiquidDropdown callback = {callback} options = {options} defaultValue = {settings.inputType}></LiquidDropdown>
             {/* <LiquidFilePicker id = "image_selector" callback = {(fname) => {liquidPNGInstance.loadNewImage(fname);}}></LiquidFilePicker> */}
             <LiquidSlider callback = {(val) => {settings.imageScale = val}} label = {"scale"} min = {"0.0"} max = {"10.0"} stepsize = {"0.01"} defaultValue = {settings.imageScale}/>
+            <LiquidDropdown callback = {(val) => {settings.imageCoordinateOverflow = val}} options = {['extend','wrap','discard']} defaultValue = {settings.imageCoordinateOverflow}></LiquidDropdown>
             </>
         );
     }
@@ -47,12 +48,12 @@ function LiquidImageSettings({parentCallback,settings,liquidPNGInstance}){
         return(
             <>
             <LiquidDropdown callback = {callback} options = {options} defaultValue = {settings.inputType}></LiquidDropdown>
-            <LiquidTextBox className = "text_input_box" callback = {(event) => {settings.displayText = event.target.value;liquidPNGInstance.loadText(settings.displayText);}}></LiquidTextBox>
+            <LiquidTextBox className = "text_input_box" placeholderText = {settings.displayText} callback = {(event) => {settings.displayText = event.target.value;liquidPNGInstance.loadText(settings.displayText);}}></LiquidTextBox>
             <LiquidDropdown callback = {async (val) => {settings.fontLink = val; settings.font = await settings.p5Inst.loadFont(settings.fontLink);liquidPNGInstance.reloadText();}} options = {['times.ttf','arial.ttf','chopin.ttf']} defaultValue = {settings.inputType}></LiquidDropdown>
             <LiquidSlider callback = {(val) => {settings.imageScale = val}} label = {"scale"} min = {"0.0"} max = {"10.0"} stepsize = {"0.01"} defaultValue = {settings.imageScale}/>
-            <LiquidCheckbox title = {"centered"} defaultState={settings.centerText} callback = {(val) => {settings.centerText = val;liquidPNGInstance.reloadText();}}></LiquidCheckbox>
-            <LiquidSlider callback = {(val) => {settings.fontSize = parseInt(val); liquidPNGInstance.loadText(settings.displayText);}} label = {"font size"} min = {"1"} max = {"200"} stepsize = {"1"} defaultValue = {settings.fontSize}/>
-            <LiquidColorPicker callback = {(val) => {val = hexToRgb(val); settings.fontColor = [val.r,val.g,val.b];liquidPNGInstance.loadText(liquidPNGInstance.currentText);}} defaultValue = {'#ff0000'} label = {"color"}></LiquidColorPicker>
+            <LiquidDropdown callback = {(val) => {settings.imageCoordinateOverflow = val}} options = {['extend','wrap','discard']} defaultValue = {settings.imageCoordinateOverflow}></LiquidDropdown>
+            <LiquidSlider callback = {(val) => {settings.fontSize = parseInt(val); liquidPNGInstance.loadText(settings.displayText);}} label = {"text resolution"} min = {"1"} max = {"600"} stepsize = {"1"} defaultValue = {settings.fontSize}/>
+            <LiquidColorPicker callback = {(val) => {val = hexToRgb(val); settings.fontColor = [val.r/255.0,val.g/255.0,val.b/255.0];}} defaultValue = {'#ff0000'} label = {"color"}></LiquidColorPicker>
             </>
         );
     }

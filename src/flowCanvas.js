@@ -17,7 +17,7 @@ class FlowCanvas{
         this.mainCanvas = this.settings.mainCanvas;
         //holds the flow field
         this.flowFieldCanvas = this.p5.createFramebuffer({ width: this.settings.width, height: this.settings.height, textureFiltering: this.p5.NEAREST, format: this.settings.clampNoise?this.p5.UNSIGNED_BYTE:this.p5.FLOAT});
-        this.outputCanvas = this.p5.createFramebuffer({ width: this.settings.width, height: this.settings.height, textureFiltering: this.p5.NEAREST, format: this.p5.FLOAT});
+        this.outputCanvas = this.p5.createFramebuffer({ width: this.settings.width, height: this.settings.height, textureFiltering: this.p5.NEAREST, format: this.settings.clampNoise?this.p5.UNSIGNED_BYTE:this.p5.FLOAT});
         this.flowFieldShader = this.createFlowFieldShader(this.p5);
         this.outputShader = this.createOutputShader();
         if(this.settings.inputType == 'text'){
@@ -36,7 +36,7 @@ class FlowCanvas{
     }
     loadImage(im){
         this.settings.image = im;
-        this.settings.srcImage = this.p5.createFramebuffer({ width: this.settings.image.width, height: this.settings.image.height, textureFiltering: this.p5.NEAREST, format: this.p5.FLOAT});
+        this.settings.srcImage = this.p5.createFramebuffer({ width: this.settings.image.width, height: this.settings.image.height, textureFiltering: this.p5.NEAREST, format: this.settings.clampNoise?this.p5.UNSIGNED_BYTE:this.p5.FLOAT});
         this.settings.srcImage.begin();
         this.p5.clear();
         this.p5.image(im,-im.width/2,-im.height/2,im.width,im.height);
@@ -85,7 +85,7 @@ class FlowCanvas{
 
         const bounds = this.getTextBounds(t,0,0);
 
-        this.settings.srcImage = this.p5.createFramebuffer({ width: bounds.width, height: bounds.height, textureFiltering: this.p5.NEAREST, format: this.p5.FLOAT});
+        this.settings.srcImage = this.p5.createFramebuffer({ width: bounds.width, height: bounds.height, textureFiltering: this.p5.NEAREST, format: this.settings.clampNoise?this.p5.UNSIGNED_BYTE:this.p5.FLOAT});
 
         this.settings.srcImage.begin();
         this.p5.clear();
@@ -294,13 +294,22 @@ class FlowCanvas{
                     //image
                     else if(uInputType == 1){
                         imageColor = texture(uTargetImage,adjustedCoordinates);
+                        // float threshold = 0.1;
+                        // if((imageColor.r >= threshold) && (imageColor.g >= threshold) && (imageColor.b >= threshold)){
+                        //     fragColor = vec4(uBackgroundColor,1.0);
+                        //     return;
+                        // }
                     }
                 }
+
                 
 
                 //clear background
                 if(uBackgroundStyle == 0){
-                    if(imageColor.a != 0.0 && !(imageColor.r >= 0.9 && imageColor.g >= 0.9 && imageColor.b >= 0.9)){
+                    if(uInputType == 1){
+                        fragColor = imageColor;
+                    }
+                    else if(imageColor.a != 0.0 && !(imageColor.r >= 0.9 && imageColor.g >= 0.9 && imageColor.b >= 0.9)){
                         fragColor = imageColor;
                     }
                     else{

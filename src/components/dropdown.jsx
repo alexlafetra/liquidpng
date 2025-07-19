@@ -10,12 +10,10 @@ function LiquidDropdown({label,callback,id,defaultValue,options}){
     }
 
     return(
-        <div className = "liquid_png_settings_dropdown">
-        <select type = "color" id = {id} value = {value}
+        <select className = "liquid_dropdown" id = {id} value = {value}
             onInput  = {callbackFn}>
                 <>{options.map(op => (<option key = {op}>{op}</option>))}</>
         </select>
-        </div>
     )
 }
 

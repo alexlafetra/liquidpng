@@ -34,11 +34,29 @@ function LiquidImageSettings({parentCallback,settings,liquidPNGInstance}){
         parentCallback(val);
     }
 
+    const openFileURL = async (e) => {
+        //make sure there's a file here
+        if(e.target.files.length > 0){
+
+            //create a file reader object
+            const reader = new FileReader();
+
+            //attach a callback for when the FR is done opening the img
+            reader.onload = async (e) => {
+                //using p5's loadImage()
+                const newImg = await settings.p5Inst.loadImage(reader.result);
+                settings.image = newImg;
+                liquidPNGInstance.reloadImage();
+            };
+            reader.readAsDataURL(e.target.files[0]);
+        }
+    }
+
     if(inputType == 'image'){
         return(
             <>
             <LiquidDropdown callback = {callback} options = {options} defaultValue = {settings.inputType}></LiquidDropdown>
-            {/* <LiquidFilePicker id = "image_selector" callback = {(fname) => {liquidPNGInstance.loadNewImage(fname);}}></LiquidFilePicker> */}
+            <LiquidFilePicker id = "image_selector" callback = {openFileURL}></LiquidFilePicker>
             <LiquidSlider callback = {(val) => {settings.imageScale = val}} label = {"scale"} min = {"0.0"} max = {"10.0"} stepsize = {"0.01"} defaultValue = {settings.imageScale}/>
             <LiquidDropdown callback = {(val) => {settings.imageCoordinateOverflow = val}} options = {['extend','wrap','discard']} defaultValue = {settings.imageCoordinateOverflow}></LiquidDropdown>
             </>

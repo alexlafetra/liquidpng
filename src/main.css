@@ -11,14 +11,6 @@ html{
                                   supported by Chrome, Edge, Opera and Firefox */
 }
 
-select{
-    color:#000000;
-    font-family: monospace;
-    background-color: #ffffff;
-    font-size:10pt;
-    border:none;
-    mix-blend-mode: difference;
-}
 input{
     color:#ffffff;
     font-family: monospace;
@@ -38,27 +30,42 @@ input{
 .canvas_container{
     background-color: transparent;
     z-index:-1;
-    height:100%;
-    padding: 0;
-    margin: 0;
     display:block;
     position:absolute;
+    width:100%;
+    height:100%;
     left:0;
     top:0;
+    backface-visibility: visible;
+    -webkit-backface-visibility: visible;
 }
 /* UI */
 .ui_container{
-    /* z-index:1; */
     display:block;
     position:absolute;
     left:0;
-    top:0;
     height:100%;
     overflow-y: scroll;
     overflow-x: hidden;
-    margin-left:20px;
+    padding-left:20px;
     background-color: transparent;
-    /* mix-blend-mode:difference; */
+    backface-visibility: visible;
+    -webkit-backface-visibility: visible;
+}
+.liquid_dropdown{
+    width:fit-content;
+    display:block;
+    margin-top:5px;
+    margin-bottom:5px;
+    /* appearance: none; */
+    padding: 5px 5px;
+    border: none;
+    border-radius: 0px;
+    background-color: #ffffff;
+    color:#000000;
+    font-family: monospace;
+    mix-blend-mode: difference;
+    font-size:10pt;
 }
 .control_header{
     text-align:left;
@@ -75,12 +82,24 @@ input{
     background-color: transparent;
     mix-blend-mode: difference;
 }
+.flow_slider_container{
+    margin-left:20px;
+}
 .liquid_text_box{
     /* color:black; */
-    border:none;
+    /* border:none;
     border-radius:0px;
-    /* mix-blend-mode: difference; */
-    background-color:transparent;
+    background-color:transparent; */
+}
+.liquid_file_input{
+    font-family: monospace;
+    color:#000000;
+    background-color: #ffffff;
+    cursor:pointer;
+    mix-blend-mode: difference;
+}
+.liquid_file_input input{
+    display:none;
 }
 .liquid_checkbox{
     cursor:pointer;
@@ -134,6 +153,9 @@ input{
     box-shadow: -407px 0 0 400px #ffffff;
 }
 
+.liquid_color_picker{
+    mix-blend-mode: normal;
+}
 .liquid_color_picker .react-colorful{
     width: 80px;
     height: 80px;

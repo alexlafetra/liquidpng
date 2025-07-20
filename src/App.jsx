@@ -20,18 +20,18 @@ function App() {
   }
   const settings = {
     hideUI : false,
-    //0 is extend (default), 1 is wrap, 2 is fill with transparency
-    imageCoordinateOverflow: 'discard',
+    showHelpText : false,
+    imageCoordinateOverflow: 'discard', //options are discard, tile, and extend
     imageLink : './test.jpg',
     fontLink : './times.ttf',
-    inputType : 'text',
+    inputType : 'text', //options are text or image
     mainCanvas : null,
     srcImage : null,
     font : null,
     fontSize : 200,
     displayText : "liquid.\npng",
     centerText : true,
-    fontColor : [255,0,0],
+    fontColor : [1.0,0,0],
     canvasWidth : window.innerWidth,
     canvasHeight : window.innerHeight,
     width : w,
@@ -75,7 +75,9 @@ function App() {
     },
     clampNoise:false,
     imageScale : 1.0,
-    backgroundColor : [0,0,255],
+    backgroundColor : [0,0,1.0],
+    gridColor : [1.0,0,0],
+    blurGridIntensity : 1.0,
     backgroundStyle : 0,
     gridThickness : 0.001,
     gridSize : 10

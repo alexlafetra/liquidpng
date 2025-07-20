@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-function LiquidFilePicker({id,callback}){
+function LiquidFilePicker({showHelpText,helpText,callback}){
     const [filename,setFilename] = useState(null);
     const selectFileCallback = (e) =>{
         callback(e);
@@ -8,18 +8,28 @@ function LiquidFilePicker({id,callback}){
     }
     if(filename !== null){
         return(
+            <div className = "liquid_component_with_helpText">
+            <div className = "liquid_ui_component">
             <label className = "liquid_file_input">
                 <input className = "liquid_button" type = "file" accept="image/png, image/jpeg" onChange = {selectFileCallback}></input>
-            {'['+filename+' -- upload another image]'}
+            {'['+filename.split('C:\\fakepath\\')[1]+' -- upload another image]'}
             </label>
+            </div>
+            {showHelpText && <div className = "liquid_help_text">{helpText}</div>}
+            </div>
         );
     }
     else{
         return(
+            <div className = "liquid_component_with_helpText">
+            <div className = "liquid_ui_component">
             <label className = "liquid_file_input">
-                <input className = "liquid_button" type = "file" accept="image/png, image/jpeg" onChange = {selectFileCallback}></input>
+            <input className = "liquid_button" type = "file" accept="image/png, image/jpeg" onChange = {selectFileCallback}></input>
             [upload an image]
             </label>
+            </div>
+            {showHelpText && <div className = "liquid_help_text">{helpText}</div>}
+            </div>
         );
     }
 }

@@ -116,7 +116,7 @@ class FlowCanvas{
         this.p5.shader(this.outputShader);
         this.outputShader.setUniform('uTargetImage',this.settings.srcImage);
         this.outputShader.setUniform('uImageProportionFactor',[this.settings.mainCanvas.height/this.settings.mainCanvas.width,this.settings.srcImage.height/this.settings.srcImage.width]);
-        this.outputShader.setUniform('uCoordinateOverflowStyle',(this.settings.imageCoordinateOverflow == 'extend')?0:((this.settings.imageCoordinateOverflow == 'wrap')?1:2));
+        this.outputShader.setUniform('uCoordinateOverflowStyle',(this.settings.imageCoordinateOverflow == 'extend')?0:((this.settings.imageCoordinateOverflow == 'tile')?1:2));
         this.outputShader.setUniform('uInputType',(this.settings.inputType == 'text')?0:1);
         this.outputShader.setUniform('uTextColor',this.settings.fontColor);
         this.outputShader.setUniform('uImageScale',this.settings.imageScale);
@@ -124,8 +124,10 @@ class FlowCanvas{
         this.outputShader.setUniform('uBackgroundStyle',this.settings.backgroundStyle);
         this.outputShader.setUniform('uBackgroundColor',this.settings.backgroundColor);
         this.outputShader.setUniform('uGridSize',this.settings.gridSize);
-        this.outputShader.setUniform('uViewOffset',[this.settings.viewWindow.offset.x/this.settings.width,this.settings.viewWindow.offset.y/this.settings.height]);
+        this.outputShader.setUniform('uGridColor',this.settings.gridColor);
         this.outputShader.setUniform('uGridThickness',this.settings.gridThickness);
+        this.outputShader.setUniform('uBlurGridIntensity',this.settings.blurGridIntensity);
+        this.outputShader.setUniform('uViewOffset',[this.settings.viewWindow.offset.x/this.settings.width,this.settings.viewWindow.offset.y/this.settings.height]);
         this.outputShader.setUniform('uWarpAmount',this.settings.globalNoise.amplitude);
         this.p5.rect(-this.outputCanvas.width / 2, -this.outputCanvas.height / 2, this.outputCanvas.width, this.outputCanvas.height);
         this.outputCanvas.end();
@@ -235,6 +237,8 @@ class FlowCanvas{
             uniform float uImageScale;
             uniform float uGridSize;
             uniform float uGridThickness;
+            uniform vec3 uGridColor;
+            uniform float uBlurGridIntensity;
             uniform vec3 uBackgroundColor;
             //image or text
             uniform int uInputType;
@@ -285,25 +289,15 @@ class FlowCanvas{
                 vec4 imageColor;
                 if(!skipImage){
                     //text
-                    if(uInputType == 0){
-                        vec4 tempColor = texture(uTargetImage,adjustedCoordinates);
-                        if(tempColor.a > 0.0){
-                            imageColor = vec4(uTextColor,tempColor.a);
-                        }
-                    }
-                    //image
-                    else if(uInputType == 1){
-                        imageColor = texture(uTargetImage,adjustedCoordinates);
-                        // float threshold = 0.1;
-                        // if((imageColor.r >= threshold) && (imageColor.g >= threshold) && (imageColor.b >= threshold)){
-                        //     fragColor = vec4(uBackgroundColor,1.0);
-                        //     return;
-                        // }
+                    imageColor = texture(uTargetImage,adjustedCoordinates);
+                    //if it's text
+                    if(uInputType == 0 && imageColor.a > 0.0){
+                        imageColor = vec4(uTextColor,imageColor.a);
                     }
                 }
 
-                
 
+                
                 //clear background
                 if(uBackgroundStyle == 0){
                     if(uInputType == 1){
@@ -330,7 +324,7 @@ class FlowCanvas{
                             fragColor = vec4(uBackgroundColor,1.0)*(1.0 - imageColor.a) + imageColor;
                         }
                         else{
-                            fragColor = vec4(uBackgroundColor,1.0)*(1.0 - imageColor.a) + imageColor;
+                            fragColor = vec4(uGridColor,1.0)*(1.0 - imageColor.a) + imageColor;
                         }
                     }
                 }
@@ -340,7 +334,7 @@ class FlowCanvas{
                         fragColor = vec4(uBackgroundColor,1.0)*(1.0 - imageColor.a) + imageColor;
                     }
                     else{
-                        fragColor = mix(vec4(uBackgroundColor,1.0),vec4(1.0),1.0 - (alpha * alpha * uGridSize));
+                        fragColor = mix(vec4(uGridColor,1.0),vec4(uBackgroundColor,1.0),1.0 - (alpha * uBlurGridIntensity));
                     }
                 }
             }

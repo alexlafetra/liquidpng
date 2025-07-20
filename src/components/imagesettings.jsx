@@ -55,23 +55,23 @@ function LiquidImageSettings({parentCallback,settings,liquidPNGInstance}){
     if(inputType == 'image'){
         return(
             <>
-            <LiquidDropdown callback = {callback} options = {options} defaultValue = {settings.inputType}></LiquidDropdown>
-            <LiquidFilePicker id = "image_selector" callback = {openFileURL}></LiquidFilePicker>
-            <LiquidSlider callback = {(val) => {settings.imageScale = val}} label = {"scale"} min = {"0.0"} max = {"10.0"} stepsize = {"0.01"} defaultValue = {settings.imageScale}/>
-            <LiquidDropdown callback = {(val) => {settings.imageCoordinateOverflow = val}} options = {['extend','wrap','discard']} defaultValue = {settings.imageCoordinateOverflow}></LiquidDropdown>
+            <LiquidDropdown callback = {callback} options = {options} defaultValue = {settings.inputType} showHelpText = {settings.showHelpText} helpText = "<-- choose between text or image input"></LiquidDropdown>
+            <LiquidFilePicker callback = {openFileURL} helpText = "<-- select an image to warp" showHelpText = {settings.showHelpText}></LiquidFilePicker>
+            <LiquidSlider callback = {(val) => {settings.imageScale = val}} label = {"scale"} showHelpText = {settings.showHelpText} helpText = "<-- shrink/grow image" min = {"0.0"} max = {"10.0"} stepsize = {"0.01"} defaultValue = {settings.imageScale}/>
+            <LiquidDropdown callback = {(val) => {settings.imageCoordinateOverflow = val}} label = 'overflow' showHelpText = {settings.showHelpText} helpText = "<-- choose how to handle image coordinate overflow" options = {['extend','tile','discard']} defaultValue = {settings.imageCoordinateOverflow}></LiquidDropdown>
             </>
         );
     }
     else if(inputType == 'text'){
         return(
             <>
-            <LiquidDropdown callback = {callback} options = {options} defaultValue = {settings.inputType}></LiquidDropdown>
-            <LiquidTextBox className = "text_input_box" placeholderText = {settings.displayText} callback = {(event) => {settings.displayText = event.target.value;liquidPNGInstance.loadText(settings.displayText);}}></LiquidTextBox>
-            <LiquidDropdown callback = {async (val) => {settings.fontLink = val; settings.font = await settings.p5Inst.loadFont(settings.fontLink);liquidPNGInstance.reloadText();}} options = {['times.ttf','arial.ttf','chopin.ttf']} defaultValue = {settings.inputType}></LiquidDropdown>
-            <LiquidSlider callback = {(val) => {settings.imageScale = val}} label = {"scale"} min = {"0.0"} max = {"10.0"} stepsize = {"0.01"} defaultValue = {settings.imageScale}/>
-            <LiquidDropdown callback = {(val) => {settings.imageCoordinateOverflow = val}} options = {['extend','wrap','discard']} defaultValue = {settings.imageCoordinateOverflow}></LiquidDropdown>
-            <LiquidSlider callback = {(val) => {settings.fontSize = parseInt(val); liquidPNGInstance.loadText(settings.displayText);}} label = {"text resolution"} min = {"1"} max = {"600"} stepsize = {"1"} defaultValue = {settings.fontSize}/>
-            <LiquidColorPicker callback = {(val) => {val = hexToRgb(val); settings.fontColor = [val.r/255.0,val.g/255.0,val.b/255.0];}} defaultValue = {'#ff0000'} label = {"color"}></LiquidColorPicker>
+            <LiquidDropdown callback = {callback} options = {options} defaultValue = {settings.inputType} showHelpText = {settings.showHelpText} helpText = "<-- choose between text or image input"></LiquidDropdown>
+            <LiquidTextBox className = "text_input_box" showHelpText = {settings.showHelpText} helpText = "<-- put your text here" placeholderText = {settings.displayText} callback = {(event) => {settings.displayText = event.target.value;liquidPNGInstance.loadText(settings.displayText);}}></LiquidTextBox>
+            <LiquidDropdown callback = {async (val) => {settings.fontLink = val; settings.font = await settings.p5Inst.loadFont(settings.fontLink);liquidPNGInstance.reloadText();}} showHelpText = {settings.showHelpText} helpText = "<-- select font" options = {['times.ttf','arial.ttf','chopin.ttf']} defaultValue = {settings.inputType}></LiquidDropdown>
+            <LiquidSlider callback = {(val) => {settings.imageScale = val}} label = {"scale"} min = {"0.0"} max = {"10.0"} stepsize = {"0.01"} defaultValue = {settings.imageScale} showHelpText = {settings.showHelpText} helpText = "<-- shrink/grow image"/>
+            <LiquidDropdown callback = {(val) => {settings.imageCoordinateOverflow = val}} label = 'overflow' options = {['extend','tile','discard']} defaultValue = {settings.imageCoordinateOverflow} showHelpText = {settings.showHelpText} helpText = "<-- choose how to handle image coordinate overflow"></LiquidDropdown>
+            <LiquidSlider callback = {(val) => {settings.fontSize = parseInt(val); liquidPNGInstance.loadText(settings.displayText);}} label = {"text res"} min = {"1"} max = {"400"} stepsize = {"1"} defaultValue = {settings.fontSize} showHelpText = {settings.showHelpText} helpText = "<-- change font size/resolution"/>
+            <LiquidColorPicker callback = {(val) => {val = hexToRgb(val); settings.fontColor = [val.r/255.0,val.g/255.0,val.b/255.0];}} defaultValue = {'#ff0000'} label = {"text color"} showHelpText = {settings.showHelpText} helpText = "<-- change text color"></LiquidColorPicker>
             </>
         );
     }

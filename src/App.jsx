@@ -19,6 +19,8 @@ function App() {
     w = window.innerHeight/window.innerWidth * resolution;
   }
   const settings = {
+    //set to 2.0 for HD
+    pixelDensity : 1.0,
     hideUI : false,
     showHelpText : false,
     imageCoordinateOverflow: 'discard', //options are discard, tile, and extend
@@ -95,6 +97,7 @@ function App() {
       settings.font = await p.loadFont(settings.fontLink);
       settings.mainCanvas = p.createCanvas(settings.canvasWidth,settings.canvasHeight,p.WEBGL);
       settings.mainCanvas.parent("sketch_canvas");
+      settings.p5Inst.pixelDensity(settings.pixelDensity);
       // settings.srcImage = p.createFramebuffer({ width: settings.image.width, height: settings.image.height, textureFiltering: p.NEAREST, format: p.FLOAT});
       settings.srcImage = p.createFramebuffer({ width: settings.image.width, height: settings.image.height, textureFiltering: p.NEAREST});
       settings.srcImage.begin();

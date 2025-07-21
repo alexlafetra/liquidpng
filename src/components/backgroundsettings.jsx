@@ -54,7 +54,7 @@ function LiquidBackgroundSettings({settings}){
             return(
                 <>
                 <LiquidDropdown showHelpText = {settings.showHelpText} helpText = {'<-- change background style'} callback = {callback} options = {options} defaultValue = {"clear"}></LiquidDropdown>
-                <LiquidColorPicker showHelpText = {settings.showHelpText} helpText = {'<-- change grid line color'} callback = {(val) => {val = hexToRgb(val); settings.gridColor = [val.r/255.0,val.g/255.0,val.b/255.0];}} defaultValue = {'#ff0000'} label = {"grid"}></LiquidColorPicker>
+                <LiquidColorPicker showHelpText = {settings.showHelpText} helpText = {'<-- change grid line color'} callback = {(val) => {val = hexToRgb(val); settings.gridColor = [val.r/255.0,val.g/255.0,val.b/255.0];}} defaultValue = {'#ff0000'} label = {"line"}></LiquidColorPicker>
                 <LiquidColorPicker showHelpText = {settings.showHelpText} helpText = {'<-- change background color'} callback = {(val) => {val = hexToRgb(val); settings.backgroundColor = [val.r/255.0,val.g/255.0,val.b/255.0];}} defaultValue = {'#0000ff'} label = {"background"}></LiquidColorPicker>
                 <br></br>
                 <LiquidSlider showHelpText = {settings.showHelpText} helpText = {'<-- change grid line thickness'} callback = {(val) => {settings.gridThickness = val;}} label = {"thickness"} min = {"0.0"} max = {"0.05"} stepsize = {"0.001"} defaultValue = {settings.gridThickness}/>
@@ -66,7 +66,7 @@ function LiquidBackgroundSettings({settings}){
             return(
                 <>
                 <LiquidDropdown showHelpText = {settings.showHelpText} helpText = {'<-- change background style'} callback = {callback} options = {options} defaultValue = {"clear"}></LiquidDropdown>
-                <LiquidColorPicker showHelpText = {settings.showHelpText} helpText = {'<-- change grid line color'} callback = {(val) => {val = hexToRgb(val); settings.gridColor = [val.r/255.0,val.g/255.0,val.b/255.0];}} defaultValue = {'#ff0000'} label = {"grid"}></LiquidColorPicker>
+                <LiquidColorPicker showHelpText = {settings.showHelpText} helpText = {'<-- change grid line color'} callback = {(val) => {val = hexToRgb(val); settings.gridColor = [val.r/255.0,val.g/255.0,val.b/255.0];}} defaultValue = {'#ff0000'} label = {"line"}></LiquidColorPicker>
                 <LiquidColorPicker showHelpText = {settings.showHelpText} helpText = {'<-- change background color'} callback = {(val) => {val = hexToRgb(val); settings.backgroundColor = [val.r/255.0,val.g/255.0,val.b/255.0];}} defaultValue = {'#0000ff'} label = {"background"}></LiquidColorPicker>
                 <br></br>
                 <LiquidSlider showHelpText = {settings.showHelpText} helpText = {'<-- change grid color intensity'} callback = {(val) => {settings.blurGridIntensity = val;}} label = {"intensity"} min = {"0.0"} max = {"10.0"} stepsize = {"0.001"} defaultValue = {settings.blurGridIntensity}/>

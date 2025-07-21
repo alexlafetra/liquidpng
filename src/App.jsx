@@ -25,7 +25,8 @@ function App() {
     showHelpText : false,
     imageCoordinateOverflow: 'discard', //options are discard, tile, and extend
     imageLink : './test.jpg',
-    fontLink : './times.ttf',
+    fontLink : 'times.ttf',
+    fontOptions : ['times.ttf','arial.ttf','chopin.ttf','NotoSerifTC.ttf'],
     inputType : 'text', //options are text or image
     mainCanvas : null,
     srcImage : null,
@@ -38,6 +39,12 @@ function App() {
     canvasHeight : window.innerHeight,
     width : w,
     height : h,
+
+    animation: {
+      active:false,
+      xMotion : -2.0,
+      yMotion : 0.0
+    },
 
     viewWindow : {
       dragStarted : false,
@@ -75,6 +82,11 @@ function App() {
       amplitude:0.05,
       scale:1000.0
     },
+    perlinNoise:{
+      active:false,
+      amplitude : 0.1,
+      scale: 1.0
+    },
     clampNoise:false,
     imageScale : 1.0,
     backgroundColor : [0,0,1.0],
@@ -82,7 +94,72 @@ function App() {
     blurGridIntensity : 1.0,
     backgroundStyle : 0,
     gridThickness : 0.001,
-    gridSize : 10
+    gridSize : 10,
+    
+    activeNoiseAlgorithm : 0,
+    //noise functions here should expose a float noise(vec2) function
+    //but can also contain other hash functions
+    noiseAlgorithms :[ 
+    `
+    float hash(float n) { return fract(sin(n) * 1e4); }
+    float hash(vec2 p) { return fract(1e4 * sin(11.0 * p.x + p.y * 0.1) * (0.1 + abs(sin(p.y * 13.0 + p.x)))); }
+    float noise(vec2 x) {
+        vec2 i = floor(x);
+        vec2 f = fract(x);
+
+        // Four corners in 2D of a tile
+        float a = hash(i);
+        float b = hash(i + vec2(1.0, 0.0));
+        float c = hash(i + vec2(0.0, 1.0));
+        float d = hash(i + vec2(1.0, 1.0));
+
+        // Same code, with the clamps in smoothstep and common subexpressions
+        // optimized away.
+        vec2 u = f * f * (3.0 - 2.0 * f);
+        float val = mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
+        return val;
+    }`,
+    `
+    float rand(float n){return fract(sin(n) * 43758.5453123);}
+    float rand(vec2 n) { 
+      return fract(sin(dot(n, vec2(12.9898, 4.1414))) * 43758.5453);
+    }
+    float noise(vec2 n) {
+      const vec2 d = vec2(0.0, 1.0);
+      vec2 b = floor(n), f = smoothstep(vec2(0.0), vec2(1.0), fract(n));
+      return mix(mix(rand(b), rand(b + d.yx), f.x), mix(rand(b + d.xy), rand(b + d.yy), f.x), f.y);
+    }`,
+    //simplex
+    `
+    vec3 permute(vec3 x) { return mod(((x*34.0)+1.0)*x, 289.0); }
+
+    float noise(vec2 v){
+      const vec4 C = vec4(0.211324865405187, 0.366025403784439,
+              -0.577350269189626, 0.024390243902439);
+      vec2 i  = floor(v + dot(v, C.yy) );
+      vec2 x0 = v -   i + dot(i, C.xx);
+      vec2 i1;
+      i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
+      vec4 x12 = x0.xyxy + C.xxzz;
+      x12.xy -= i1;
+      i = mod(i, 289.0);
+      vec3 p = permute( permute( i.y + vec3(0.0, i1.y, 1.0 ))
+      + i.x + vec3(0.0, i1.x, 1.0 ));
+      vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x12.xy,x12.xy),
+        dot(x12.zw,x12.zw)), 0.0);
+      m = m*m ;
+      m = m*m ;
+      vec3 x = 2.0 * fract(p * C.www) - 1.0;
+      vec3 h = abs(x) - 0.5;
+      vec3 ox = floor(x + 0.5);
+      vec3 a0 = x - ox;
+      m *= 1.79284291400159 - 0.85373472095314 * ( a0*a0 + h*h );
+      vec3 g;
+      g.x  = a0.x  * x0.x  + h.x  * x0.y;
+      g.yz = a0.yz * x12.xz + h.yz * x12.yw;
+      return 130.0 * dot(m, g);
+    }`
+    ],
   }
 
   const liquidPNG = new FlowCanvas(settings);
@@ -96,13 +173,8 @@ function App() {
       settings.image = await p.loadImage(settings.imageLink);
       settings.font = await p.loadFont(settings.fontLink);
       settings.mainCanvas = p.createCanvas(settings.canvasWidth,settings.canvasHeight,p.WEBGL);
-      settings.mainCanvas.parent("sketch_canvas");
       settings.p5Inst.pixelDensity(settings.pixelDensity);
-      // settings.srcImage = p.createFramebuffer({ width: settings.image.width, height: settings.image.height, textureFiltering: p.NEAREST, format: p.FLOAT});
-      settings.srcImage = p.createFramebuffer({ width: settings.image.width, height: settings.image.height, textureFiltering: p.NEAREST});
-      settings.srcImage.begin();
-      p.image(settings.image,-settings.image.width/2,-settings.image.height/2,settings.image.width,settings.image.height);
-      settings.srcImage.end();
+      settings.srcImage = p.createFramebuffer({ width: settings.image.width, height: settings.image.height, textureFiltering: p.NEAREST, format: p.FLOAT});
 
       //init after setup() is called so that the p5 instance, font, and main canvas can be passed into liquidPNG
       liquidPNG.init();
@@ -166,6 +238,12 @@ function App() {
     }
     p.windowResized = (e) => {
       p.resizeCanvas(window.innerWidth,window.innerHeight);
+      /*
+      the shortest dimension of the output image should always be scaled by scale, but the longest
+      dim should be scaled so that the image stays in original proportion.
+      EG: when window is shrunk in X, image shrinks in Y to stay in proportion
+      
+      */
     }
     return () => {
         p.remove();
@@ -203,7 +281,6 @@ function App() {
     <div className = "app_container">
       {/* holds the sketch */}
       <LiquidUIContainer liquidPNGInstance={liquidPNG} settings = {settings}></LiquidUIContainer>
-      <div id = "sketch_canvas" className = "canvas_container"></div>
     </div>
   )
 }

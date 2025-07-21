@@ -4,20 +4,20 @@ class FlowCanvas{
         this.currentText = settings.displayText;
     }
     saveImage(){
+        this.p5.pixelDensity(2.0);
         this.render();
-        console.log(this.settings.mainCanvas);
         let dataURL = this.settings.mainCanvas.elt.toDataURL('image/png');
         let a = document.createElement('a');
         a.href = dataURL;
         a.download = 'liquid.png';
         a.click();
+        this.p5.pixelDensity(this.settings.pixelDensity);
     }
     init(){
         this.p5 = this.settings.p5Inst;
         this.mainCanvas = this.settings.mainCanvas;
         //holds the flow field
         this.flowFieldCanvas = this.p5.createFramebuffer({ width: this.settings.width, height: this.settings.height, textureFiltering: this.p5.NEAREST, format: this.settings.clampNoise?this.p5.UNSIGNED_BYTE:this.p5.FLOAT});
-        this.outputCanvas = this.p5.createFramebuffer({ width: this.settings.width, height: this.settings.height, textureFiltering: this.p5.NEAREST, format: this.settings.clampNoise?this.p5.UNSIGNED_BYTE:this.p5.FLOAT});
         this.flowFieldShader = this.createFlowFieldShader(this.p5);
         this.outputShader = this.createOutputShader();
         if(this.settings.inputType == 'text'){
@@ -98,28 +98,38 @@ class FlowCanvas{
         this.p5.clear();
         this.p5.shader(this.flowFieldShader);
         this.flowFieldShader.setUniform('uClampFloats',true);
-        this.flowFieldShader.setUniform('uHighFrequencyNoiseScale',this.settings.highFNoise.scale);
-        this.flowFieldShader.setUniform('uMediumFrequencyNoiseScale',this.settings.mediumFNoise.scale);
-        this.flowFieldShader.setUniform('uLowFrequencyNoiseScale',this.settings.lowFNoise.scale);
         this.flowFieldShader.setUniform('uHighFrequencyNoiseAmplitude',this.settings.highFNoise.active?this.settings.highFNoise.amplitude:0.0);
-        this.flowFieldShader.setUniform('uMediumFrequencyNoiseAmplitude',this.settings.mediumFNoise.active?this.settings.mediumFNoise.amplitude:0.0);
+        this.flowFieldShader.setUniform('uHighFrequencyNoiseScale',this.settings.highFNoise.scale);
         this.flowFieldShader.setUniform('uLowFrequencyNoiseAmplitude',this.settings.lowFNoise.active?this.settings.lowFNoise.amplitude:0.0);
+        this.flowFieldShader.setUniform('uLowFrequencyNoiseScale',this.settings.lowFNoise.scale);
+        this.flowFieldShader.setUniform('uMediumFrequencyNoiseAmplitude',this.settings.mediumFNoise.active?this.settings.mediumFNoise.amplitude:0.0);
+        this.flowFieldShader.setUniform('uMediumFrequencyNoiseScale',this.settings.mediumFNoise.scale);
+        this.flowFieldShader.setUniform('uPerlinNoiseAmplitude',this.settings.perlinNoise.active?this.settings.perlinNoise.amplitude:0.0);
+        this.flowFieldShader.setUniform('uPerlinNoiseScale',this.settings.perlinNoise.scale);
         this.flowFieldShader.setUniform('uViewOffset',[this.settings.viewWindow.offset.x/this.settings.width,this.settings.viewWindow.offset.y/this.settings.height]);
         this.flowFieldShader.setUniform('uNoiseOffset',[this.settings.noiseWindow.offset.x/this.settings.width,this.settings.noiseWindow.offset.y/this.settings.height]);
         this.p5.rect(-this.flowFieldCanvas.width / 2, -this.flowFieldCanvas.height / 2, this.flowFieldCanvas.width, this.flowFieldCanvas.height);
         this.flowFieldCanvas.end();
     }
     render(){
+        if(this.settings.animation.active){
+            this.settings.noiseWindow.offset.x += this.settings.animation.xMotion;
+            this.settings.noiseWindow.offset.y += this.settings.animation.yMotion;
+        }
         this.updateFlow();
-        this.outputCanvas.begin();
         this.p5.clear();
         this.p5.shader(this.outputShader);
         this.outputShader.setUniform('uTargetImage',this.settings.srcImage);
-        this.outputShader.setUniform('uImageProportionFactor',[this.settings.mainCanvas.height/this.settings.mainCanvas.width,this.settings.srcImage.height/this.settings.srcImage.width]);
         this.outputShader.setUniform('uCoordinateOverflowStyle',(this.settings.imageCoordinateOverflow == 'extend')?0:((this.settings.imageCoordinateOverflow == 'tile')?1:2));
         this.outputShader.setUniform('uInputType',(this.settings.inputType == 'text')?0:1);
         this.outputShader.setUniform('uTextColor',this.settings.fontColor);
-        this.outputShader.setUniform('uImageScale',this.settings.imageScale);
+        
+        //scaling to keep the image in proportion when the canvas is at a different aspect ratio
+        const proportionScale = {
+            x:this.settings.srcImage.width/this.settings.mainCanvas.width * 400.0/this.settings.fontSize,
+            y:-this.settings.srcImage.height/this.settings.mainCanvas.height * 400.0/this.settings.fontSize
+        };
+        this.outputShader.setUniform('uImageScale',[this.settings.imageScale*proportionScale.x,this.settings.imageScale*proportionScale.y]);
         this.outputShader.setUniform('uFlowTexture',this.flowFieldCanvas);
         this.outputShader.setUniform('uBackgroundStyle',this.settings.backgroundStyle);
         this.outputShader.setUniform('uBackgroundColor',this.settings.backgroundColor);
@@ -128,13 +138,10 @@ class FlowCanvas{
         this.outputShader.setUniform('uGridThickness',this.settings.gridThickness);
         this.outputShader.setUniform('uBlurGridIntensity',this.settings.blurGridIntensity);
         this.outputShader.setUniform('uViewOffset',[this.settings.viewWindow.offset.x/this.settings.width,this.settings.viewWindow.offset.y/this.settings.height]);
-        this.outputShader.setUniform('uWarpAmount',this.settings.globalNoise.amplitude);
-        this.p5.rect(-this.outputCanvas.width / 2, -this.outputCanvas.height / 2, this.outputCanvas.width, this.outputCanvas.height);
-        this.outputCanvas.end();
-        this.p5.clear();
-        this.p5.image(this.outputCanvas,-this.mainCanvas.width/2,-this.mainCanvas.height/2,this.mainCanvas.width,this.mainCanvas.height);
+        this.p5.quad(1,1,-1,1,-1,-1,1,-1);
+        this.p5.resetShader();
     }
-    createFlowFieldShader(p5){
+    createFlowFieldShader(){
         const glsl = x => x;
 
         const shaderSource = {
@@ -164,47 +171,68 @@ class FlowCanvas{
             uniform float uMediumFrequencyNoiseAmplitude;
             uniform float uHighFrequencyNoiseAmplitude;
             uniform float uHighFrequencyNoiseScale;
+            uniform float uPerlinNoiseAmplitude;
+            uniform float uPerlinNoiseScale;
 
             uniform bool uClampFloats;
 
             in vec2 vPosition;
-            out vec4 fragColor;
+            out vec4 fragColor;`+this.settings.noiseAlgorithms[this.settings.activeNoiseAlgorithm]+`
+            float perlinRand(vec2 c){
+                return fract(sin(dot(c.xy ,vec2(12.9898,78.233))) * 43758.5453);
+            }
 
-            float hash(float n) { return fract(sin(n) * 1e4); }
-            float hash(vec2 p) { return fract(1e4 * sin(11.0 * p.x + p.y * 0.1) * (0.1 + abs(sin(p.y * 13.0 + p.x)))); }
-            float noise(vec2 x) {
-                vec2 i = floor(x);
-                vec2 f = fract(x);
+            float _noise(vec2 p, float freq ){
+                float PI = 3.14159265358979323846;
+                float screenWidth = 1.0;
+                float unit = screenWidth/freq;
+                vec2 ij = floor(p/unit);
+                vec2 xy = mod(p,unit)/unit;
+                //xy = 3.*xy*xy-2.*xy*xy*xy;
+                xy = .5*(1.-cos(PI*xy));
+                float a = perlinRand((ij+vec2(0.,0.)));
+                float b = perlinRand((ij+vec2(1.,0.)));
+                float c = perlinRand((ij+vec2(0.,1.)));
+                float d = perlinRand((ij+vec2(1.,1.)));
+                float x1 = mix(a, b, xy.x);
+                float x2 = mix(c, d, xy.x);
+                return mix(x1, x2, xy.y);
+            }
 
-                // Four corners in 2D of a tile
-                float a = hash(i);
-                float b = hash(i + vec2(1.0, 0.0));
-                float c = hash(i + vec2(0.0, 1.0));
-                float d = hash(i + vec2(1.0, 1.0));
-
-                // Simple 2D lerp using smoothstep envelope between the values.
-                // return vec3(mix(mix(a, b, smoothstep(0.0, 1.0, f.x)),
-                //			mix(c, d, smoothstep(0.0, 1.0, f.x)),
-                //			smoothstep(0.0, 1.0, f.y)));
-
-                // Same code, with the clamps in smoothstep and common subexpressions
-                // optimized away.
-                vec2 u = f * f * (3.0 - 2.0 * f);
-                float val = mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
-                return val;
+            float perlinNoise(vec2 p){
+                //this matters a lot!
+                int res = 6;
+                float persistance = 0.5;
+                float n = 0.;
+                float normK = 0.;
+                float f = 4.;
+                float amp = 1.;
+                int iCount = 0;
+                for (int i = 0; i<50; i++){
+                    n+=amp*_noise(p, f);
+                    f*=2.;
+                    normK+=amp;
+                    amp*=persistance;
+                    if (iCount == res) break;
+                    iCount++;
+                }
+                float nf = n/normK;
+                return nf*nf*nf*nf;
             }
             void main() {
-                float r =   uLowFrequencyNoiseAmplitude * (noise(vPosition*uLowFrequencyNoiseScale + uNoiseOffset) - 0.5)+ 
-                            uMediumFrequencyNoiseAmplitude * (noise(vPosition*uMediumFrequencyNoiseScale + uNoiseOffset) - 0.5) + 
-                            uHighFrequencyNoiseAmplitude * (noise(vPosition*uHighFrequencyNoiseScale + uNoiseOffset) - 0.5);
-                float g =   uLowFrequencyNoiseAmplitude * (noise(vPosition.yx*uLowFrequencyNoiseScale + uNoiseOffset.yx) - 0.5) + 
-                            uMediumFrequencyNoiseAmplitude * (noise(vPosition.yx*uMediumFrequencyNoiseScale + uNoiseOffset.yx) - 0.5) +
-                            uHighFrequencyNoiseAmplitude * (noise(vPosition.yx*uHighFrequencyNoiseScale + uNoiseOffset.yx) - 0.5);
-                fragColor = vec4(r,g,r*g,1.0);
+                float r =   ((uLowFrequencyNoiseAmplitude>0.0)?(uLowFrequencyNoiseAmplitude * (noise(vPosition*uLowFrequencyNoiseScale + uNoiseOffset) - 0.5)):0.0)+ 
+                            ((uMediumFrequencyNoiseAmplitude>0.0)?(uMediumFrequencyNoiseAmplitude * (noise(vPosition*uMediumFrequencyNoiseScale + uNoiseOffset) - 0.5)):0.0) + 
+                            ((uHighFrequencyNoiseAmplitude>0.0)?(uHighFrequencyNoiseAmplitude * (noise(vPosition*uHighFrequencyNoiseScale + uNoiseOffset) - 0.5)):0.0) +
+                            ((uPerlinNoiseAmplitude>0.0)?(uPerlinNoiseAmplitude * (perlinNoise(vPosition*uPerlinNoiseScale + uNoiseOffset) - 0.5)):0.0);
+                float g =   ((uLowFrequencyNoiseAmplitude>0.0)?(uLowFrequencyNoiseAmplitude * (noise(vPosition.yx*uLowFrequencyNoiseScale + uNoiseOffset) - 0.5)):0.0)+ 
+                            ((uMediumFrequencyNoiseAmplitude>0.0)?(uMediumFrequencyNoiseAmplitude * (noise(vPosition.yx*uMediumFrequencyNoiseScale + uNoiseOffset) - 0.5)):0.0) + 
+                            ((uHighFrequencyNoiseAmplitude>0.0)?(uHighFrequencyNoiseAmplitude * (noise(vPosition.yx*uHighFrequencyNoiseScale + uNoiseOffset) - 0.5)):0.0) +
+                            ((uPerlinNoiseAmplitude>0.0)?(uPerlinNoiseAmplitude * (perlinNoise(vPosition.yx*uPerlinNoiseScale + uNoiseOffset) - 0.5)):0.0);
+                fragColor = vec4(r,g,1.0,1.0);
             }
             `
         }
-        return p5.createShader(shaderSource.vertexShader, shaderSource.fragmentShader);
+        return this.p5.createShader(shaderSource.vertexShader, shaderSource.fragmentShader);
     }
     createOutputShader(){
         const shaderSource = {
@@ -229,12 +257,10 @@ class FlowCanvas{
             in vec2 vPosition;
             uniform sampler2D uFlowTexture;
             uniform sampler2D uTargetImage;
-            uniform vec2 uImageProportionFactor;
-            uniform float uWarpAmount;
             uniform vec2 uViewOffset;
             
             //value to scale the image by
-            uniform float uImageScale;
+            uniform vec2 uImageScale;
             uniform float uGridSize;
             uniform float uGridThickness;
             uniform vec3 uGridColor;
@@ -252,10 +278,8 @@ class FlowCanvas{
             out vec4 fragColor;
 
             void main() {
-                vec4 sampleCoordinates = texture(uFlowTexture,vPosition) - 0.5 + vec4(uViewOffset,1.0,1.0);
-                vec2 warpedCoordinates = vPosition+sampleCoordinates.xy * uWarpAmount;
-                //centering the coordinates
-                float aR = uImageProportionFactor.x/uImageProportionFactor.y;
+                vec2 sampleCoordinates = texture(uFlowTexture,vPosition).xy - 0.5 + uViewOffset;
+                vec2 warpedCoordinates = vPosition + sampleCoordinates;
                 vec2 adjustedCoordinates = (warpedCoordinates - 0.5)/(uImageScale) + 0.5;
                 bool skipImage = false;
                 switch(uCoordinateOverflowStyle){
@@ -277,7 +301,7 @@ class FlowCanvas{
                             adjustedCoordinates.y += 1.0;
                         }
                         break;
-                    //fill w/ transparency
+                    //fill w/ BG
                     case 2:
                         if(adjustedCoordinates.x > 1.0 || adjustedCoordinates.y > 1.0 || adjustedCoordinates.x < 0.0 || adjustedCoordinates.y < 0.0){
                             skipImage = true;

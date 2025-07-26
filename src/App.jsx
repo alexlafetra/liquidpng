@@ -19,14 +19,17 @@ function App() {
     w = window.innerHeight/window.innerWidth * resolution;
   }
   const settings = {
+    startInHiRes : false,
     //set to 2.0 for HD
     pixelDensity : 1.0,
     hideUI : false,
     showHelpText : false,
     imageCoordinateOverflow: 'discard', //options are discard, tile, and extend
-    imageLink : './test.jpg',
+    imageLink : './star.png',
     fontLink : 'times.ttf',
-    fontOptions : ['times.ttf','arial.ttf','chopin.ttf','NotoSerifTC.ttf'],
+    fontOptions : ['times.ttf','arial.ttf','chopin.ttf','SFMono.otf','NotoSerifTC.ttf'],
+    // options are left, right, and centered
+    textAlignment : 'Left',
     inputType : 'text', //options are text or image
     mainCanvas : null,
     srcImage : null,
@@ -39,6 +42,7 @@ function App() {
     canvasHeight : window.innerHeight,
     width : w,
     height : h,
+    globalScale : 1.0,
 
     animation: {
       active:false,
@@ -171,7 +175,7 @@ function App() {
 
     p.setup = async () => {
       settings.image = await p.loadImage(settings.imageLink);
-      settings.font = await p.loadFont(settings.fontLink);
+      settings.font = await p.loadFont('./fonts/'+settings.fontLink);
       settings.mainCanvas = p.createCanvas(settings.canvasWidth,settings.canvasHeight,p.WEBGL);
       settings.p5Inst.pixelDensity(settings.pixelDensity);
       settings.srcImage = p.createFramebuffer({ width: settings.image.width, height: settings.image.height, textureFiltering: p.NEAREST, format: p.FLOAT});
@@ -183,12 +187,12 @@ function App() {
       liquidPNG.render();
     }
     p.mouseReleased = () =>{
-        if(p.keyIsDown(p.SHIFT) || p.touches.length > 1){
+        if(p.keyIsDown(p.SHIFT)){
             if(settings.viewWindow.dragStarted){
                 settings.viewWindow.end = {x:p.mouseX,y:p.mouseY}
                 const dX = settings.viewWindow.end.x - settings.viewWindow.start.x;
                 const dY = settings.viewWindow.end.y - settings.viewWindow.start.y;
-                settings.viewWindow.origin.x += dX;
+                settings.viewWindow.origin.x -= dX;
                 settings.viewWindow.origin.y += dY;
             }
             settings.viewWindow.dragStarted = false;
@@ -199,7 +203,7 @@ function App() {
                 settings.noiseWindow.end = {x:p.mouseX,y:p.mouseY}
                 const dX = settings.noiseWindow.end.x - settings.noiseWindow.start.x;
                 const dY = settings.noiseWindow.end.y - settings.noiseWindow.start.y;
-                settings.noiseWindow.origin.x += dX;
+                settings.noiseWindow.origin.x -= dX;
                 settings.noiseWindow.origin.y += dY;
             }
             settings.noiseWindow.dragStarted = false;
@@ -207,7 +211,7 @@ function App() {
     }
     p.mouseDragged = () =>{
         if(p.mouseX < settings.mainCanvas.width && p.mouseY < settings.mainCanvas.height && p.mouseX > 0 && p.mouseY > 0){
-            if(p.keyIsDown(p.SHIFT)  || p.touches.length > 1){
+            if(p.keyIsDown(p.SHIFT)){
                 if(!settings.viewWindow.dragStarted){
                     settings.viewWindow.dragStarted = true;
                     settings.viewWindow.start = {x:p.mouseX,y:p.mouseY};
@@ -216,7 +220,7 @@ function App() {
                     settings.viewWindow.end = {x:p.mouseX,y:p.mouseY}
                     const dX = settings.viewWindow.end.x - settings.viewWindow.start.x;
                     const dY = settings.viewWindow.end.y - settings.viewWindow.start.y;
-                    settings.viewWindow.offset.x = dX + settings.viewWindow.origin.x;
+                    settings.viewWindow.offset.x = -dX + settings.viewWindow.origin.x;
                     settings.viewWindow.offset.y = dY+ settings.viewWindow.origin.y;
                 }
                 // liquidPNG.loadText("two touches"); 
@@ -230,7 +234,7 @@ function App() {
                     settings.noiseWindow.end = {x:p.mouseX,y:p.mouseY}
                     const dX = settings.noiseWindow.end.x - settings.noiseWindow.start.x;
                     const dY = settings.noiseWindow.end.y - settings.noiseWindow.start.y;
-                    settings.noiseWindow.offset.x = dX + settings.noiseWindow.origin.x;
+                    settings.noiseWindow.offset.x = -dX + settings.noiseWindow.origin.x;
                     settings.noiseWindow.offset.y = dY+ settings.noiseWindow.origin.y;
                 }
             }

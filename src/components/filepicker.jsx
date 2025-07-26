@@ -11,7 +11,7 @@ function LiquidFilePicker({showHelpText,helpText,callback}){
             <div className = "liquid_component_with_helpText">
             <div className = "liquid_ui_component">
             <label className = "liquid_file_input">
-                <input className = "liquid_button" type = "file" accept="image/png, image/jpeg" onChange = {selectFileCallback}></input>
+                <input className = "liquid_button" type = "file" accept="image/png, image/jpeg, image/svg+xml" onChange = {selectFileCallback}></input>
             {'['+filename.split('C:\\fakepath\\')[1]+' -- upload another image]'}
             </label>
             </div>

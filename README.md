@@ -1,12 +1,31 @@
-# React + Vite
+<!--
+                              __
+                     /\    .-" /
+                    /  ; .'  .' 
+                   :   :/  .'   
+                    \  ;-.'     
+       .--""""--..__/     `.    
+     .'           .'    _   \   
+    /                    \   ;  
+   :                  \      :  
+ .-;        -.         `.__.-'  
+:  ;          \     ,   ;       
+'._:           ;   :   (        
+    \/  .__    ;    \   `-.     
+     ;     "-,/_..--"`-..__)    
+     '""--.._:
+-->
+# liquidPNG
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+LiquidPNG is an online tool designed for exploring text and image distortion. I started it as part of an ongoing project translating electronic data into physical form, but it kind of grew into a technical challenge around designing a web application.
 
-Currently, two official plugins are available:
+Run it [here :^)](https://alexlafetra.github.io/liquidpng)!
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+(Things can be very buggy on mobile browsers, where floating-point textures aren't as well supported).
 
-## Expanding the ESLint configuration
+![Heart emoticon warped with liquidPNG](public/love.png)
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+LiquidPNG uses [p5js](https://p5js.org/) alongside WebGL to distort images (lots of love to p5js), and is a totally open source project released under the MIT software license. Feel free to reuse, contribute, or copy this project. 
+
+![Image of a star cut into a leaf, which has been distorted with liquidPNG](public/leaf.png)
+

@@ -39,6 +39,32 @@ input{
     backface-visibility: visible;
     -webkit-backface-visibility: visible;
 }
+/* div holding description text */
+.description_container{
+    position:absolute;
+    right: 10px;
+    width:fit-content;
+    max-width:500px;
+}
+/* styling description text */
+.description_text{
+    text-align:left;
+    font-size: 14pt;
+    font-family:'Times New Roman', Times, serif;
+    color:#ffffff;
+    background-color: transparent;
+    mix-blend-mode:difference;
+    display:block;
+}
+/* styling image */
+.description_container img{
+    width:100px;
+    display:block;
+    height:100px;
+    margin:auto;
+    mix-blend-mode:normal;
+    pointer-events:none;
+}
 /* UI */
 .ui_container{
     position:absolute;
@@ -53,6 +79,10 @@ input{
     backface-visibility: visible;
     -webkit-backface-visibility: visible;
     width:fit-content;
+}
+/* hiding the scrollbar */
+.ui_container::-webkit-scrollbar {
+        display: none;
 }
 /* box that holds helptext w/ the component */
 .liquid_component_with_helpText{

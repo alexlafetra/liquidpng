@@ -3,8 +3,13 @@ class FlowCanvas{
         this.settings = settings;
         this.currentText = settings.displayText;
     }
+    reset(){
+        this.settings.p5Inst.resizeCanvas(window.innerWidth,window.innerHeight);
+        this.settings.p5Inst.pixelDensity(this.settings.pixelDensity);
+        this.settings.srcImage = this.settings.p5Inst.createFramebuffer({ width: this.settings.image.width, height: this.settings.image.height, textureFiltering: this.settings.p5Inst.NEAREST, format: this.settings.p5Inst.FLOAT});
+        this.init();
+    }
     saveImage(){
-        this.p5.pixelDensity(2.0);
         this.render();
         let dataURL = this.settings.mainCanvas.elt.toDataURL('image/png');
         let a = document.createElement('a');
@@ -70,6 +75,16 @@ class FlowCanvas{
         bounds.width = Math.ceil(bounds.width);
         return bounds;
     }
+    getAlignment(){
+        switch(this.settings.textAlignment){
+            case "Left":
+                return this.p5.LEFT;
+            case "Right":
+                return this.p5.RIGHT;
+            case "Center":
+                return this.p5.CENTER;
+        }
+    }
     loadText(t){
 
         if(t === null || t == ""){
@@ -81,15 +96,16 @@ class FlowCanvas{
         this.p5.fill(0,0,0);
         this.p5.noStroke();
         this.p5.textSize(this.settings.fontSize);
-        this.p5.textAlign(this.p5.LEFT,this.p5.TOP);
+        this.p5.textAlign(this.getAlignment(),this.p5.TOP);
 
-        const bounds = this.getTextBounds(t,0,0);
+        const bounds = this.getTextBounds(t);
 
         this.settings.srcImage = this.p5.createFramebuffer({ width: bounds.width, height: bounds.height, textureFiltering: this.p5.NEAREST, format: this.settings.clampNoise?this.p5.UNSIGNED_BYTE:this.p5.FLOAT});
 
+
         this.settings.srcImage.begin();
         this.p5.clear();
-        this.p5.text(t,-bounds.width/2,-bounds.height/2);
+        this.p5.text(t,this.settings.textAlignment == 'Left'?-bounds.width/2:(this.settings.textAlignment == 'Right'?bounds.width/2:0),-bounds.height/2);
         this.settings.srcImage.end();
         this.currentText = t;
     }
@@ -99,13 +115,13 @@ class FlowCanvas{
         this.p5.shader(this.flowFieldShader);
         this.flowFieldShader.setUniform('uClampFloats',true);
         this.flowFieldShader.setUniform('uHighFrequencyNoiseAmplitude',this.settings.highFNoise.active?this.settings.highFNoise.amplitude:0.0);
-        this.flowFieldShader.setUniform('uHighFrequencyNoiseScale',this.settings.highFNoise.scale);
+        this.flowFieldShader.setUniform('uHighFrequencyNoiseScale',this.settings.highFNoise.scale/this.settings.globalScale);
         this.flowFieldShader.setUniform('uLowFrequencyNoiseAmplitude',this.settings.lowFNoise.active?this.settings.lowFNoise.amplitude:0.0);
-        this.flowFieldShader.setUniform('uLowFrequencyNoiseScale',this.settings.lowFNoise.scale);
+        this.flowFieldShader.setUniform('uLowFrequencyNoiseScale',this.settings.lowFNoise.scale/this.settings.globalScale);
         this.flowFieldShader.setUniform('uMediumFrequencyNoiseAmplitude',this.settings.mediumFNoise.active?this.settings.mediumFNoise.amplitude:0.0);
-        this.flowFieldShader.setUniform('uMediumFrequencyNoiseScale',this.settings.mediumFNoise.scale);
+        this.flowFieldShader.setUniform('uMediumFrequencyNoiseScale',this.settings.mediumFNoise.scale/this.settings.globalScale);
         this.flowFieldShader.setUniform('uPerlinNoiseAmplitude',this.settings.perlinNoise.active?this.settings.perlinNoise.amplitude:0.0);
-        this.flowFieldShader.setUniform('uPerlinNoiseScale',this.settings.perlinNoise.scale);
+        this.flowFieldShader.setUniform('uPerlinNoiseScale',this.settings.perlinNoise.scale/this.settings.globalScale);
         this.flowFieldShader.setUniform('uViewOffset',[this.settings.viewWindow.offset.x/this.settings.width,this.settings.viewWindow.offset.y/this.settings.height]);
         this.flowFieldShader.setUniform('uNoiseOffset',[this.settings.noiseWindow.offset.x/this.settings.width,this.settings.noiseWindow.offset.y/this.settings.height]);
         this.p5.rect(-this.flowFieldCanvas.width / 2, -this.flowFieldCanvas.height / 2, this.flowFieldCanvas.width, this.flowFieldCanvas.height);
@@ -129,7 +145,7 @@ class FlowCanvas{
             x:this.settings.srcImage.width/this.settings.mainCanvas.width * 400.0/this.settings.fontSize,
             y:-this.settings.srcImage.height/this.settings.mainCanvas.height * 400.0/this.settings.fontSize
         };
-        this.outputShader.setUniform('uImageScale',[this.settings.imageScale*proportionScale.x,this.settings.imageScale*proportionScale.y]);
+        this.outputShader.setUniform('uImageScale',[this.settings.imageScale*proportionScale.x*this.settings.globalScale,this.settings.imageScale*proportionScale.y*this.settings.globalScale]);
         this.outputShader.setUniform('uFlowTexture',this.flowFieldCanvas);
         this.outputShader.setUniform('uBackgroundStyle',this.settings.backgroundStyle);
         this.outputShader.setUniform('uBackgroundColor',this.settings.backgroundColor);

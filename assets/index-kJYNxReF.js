@@ -2148,7 +2148,7 @@ All of the arguments with expected type 'genType' should have a matching type. I
                 float n = 0.;
                 float normK = 0.;
                 float f = 4.;
-                float amp = 1.;
+                float amp = 1.0;
                 int iCount = 0;
                 for (int i = 0; i<50; i++){
                     n+=amp*_noise(p, f);
@@ -2159,17 +2159,17 @@ All of the arguments with expected type 'genType' should have a matching type. I
                     iCount++;
                 }
                 float nf = n/normK;
-                return nf*nf*nf*nf;
+                return uPerlinNoiseAmplitude*(nf*nf*nf*nf);
             }
             void main() {
                 float r =   ((uLowFrequencyNoiseAmplitude>0.0)?(uLowFrequencyNoiseAmplitude * (noise(vPosition*uLowFrequencyNoiseScale + uNoiseOffset) - 0.5)):0.0)+ 
                             ((uMediumFrequencyNoiseAmplitude>0.0)?(uMediumFrequencyNoiseAmplitude * (noise(vPosition*uMediumFrequencyNoiseScale + uNoiseOffset) - 0.5)):0.0) + 
                             ((uHighFrequencyNoiseAmplitude>0.0)?(uHighFrequencyNoiseAmplitude * (noise(vPosition*uHighFrequencyNoiseScale + uNoiseOffset) - 0.5)):0.0) +
-                            ((uPerlinNoiseAmplitude>0.0)?(uPerlinNoiseAmplitude * (perlinNoise(vPosition*uPerlinNoiseScale + uNoiseOffset) - 0.5)):0.0);
+                            ((uPerlinNoiseAmplitude>0.0)?perlinNoise(vPosition*uPerlinNoiseScale + uNoiseOffset):0.0);
                 float g =   ((uLowFrequencyNoiseAmplitude>0.0)?(uLowFrequencyNoiseAmplitude * (noise(vPosition.yx*uLowFrequencyNoiseScale + uNoiseOffset) - 0.5)):0.0)+ 
                             ((uMediumFrequencyNoiseAmplitude>0.0)?(uMediumFrequencyNoiseAmplitude * (noise(vPosition.yx*uMediumFrequencyNoiseScale + uNoiseOffset) - 0.5)):0.0) + 
                             ((uHighFrequencyNoiseAmplitude>0.0)?(uHighFrequencyNoiseAmplitude * (noise(vPosition.yx*uHighFrequencyNoiseScale + uNoiseOffset) - 0.5)):0.0) +
-                            ((uPerlinNoiseAmplitude>0.0)?(uPerlinNoiseAmplitude * (perlinNoise(vPosition.yx*uPerlinNoiseScale + uNoiseOffset) - 0.5)):0.0);
+                            ((uPerlinNoiseAmplitude>0.0)?perlinNoise(vPosition.yx*uPerlinNoiseScale + uNoiseOffset):0.0);
                 fragColor = vec4(r,g,1.0,1.0);
             }
             `};return this.p5.createShader(t.vertexShader,t.fragmentShader)}createOutputShader(){const t={vertexShader:`#version 300 es
@@ -2254,8 +2254,6 @@ All of the arguments with expected type 'genType' should have a matching type. I
                         imageColor = vec4(uTextColor,imageColor.a);
                     }
                 }
-
-
                 
                 //clear background
                 if(uBackgroundStyle == 0){

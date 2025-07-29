@@ -4,6 +4,7 @@ import React from 'react'
 import './App.css'
 import FlowCanvas from './flowCanvas.js'
 import './main.css';
+// import {p5asciify} from 'p5.asciify'
 
 import LiquidUIContainer from './components/ui.jsx'
 
@@ -23,11 +24,14 @@ function App() {
     //set to 2.0 for HD
     pixelDensity : 1.0,
     hideUI : false,
+    distortionMenu : {open:false},
+    backgroundMenu : {open:false},
+    imageMenu : {open:true},
     showHelpText : false,
     imageCoordinateOverflow: 'discard', //options are discard, tile, and extend
     imageLink : './star.png',
     fontLink : 'times.ttf',
-    fontOptions : ['times.ttf','arial.ttf','chopin.ttf','SFMono.otf','NotoSerifTC.ttf'],
+    fontOptions : ['times.ttf','arial.ttf','CedarvilleCursive.ttf','chopin.ttf','SFMono.otf','NotoSerifTC.ttf'],
     // options are left, right, and centered
     textAlignment : 'Left',
     inputType : 'text', //options are text or image
@@ -167,6 +171,9 @@ function App() {
   }
 
   const liquidPNG = new FlowCanvas(settings);
+  let asciifier;
+  let brightnessRenderer;
+  let edgeRenderer;
 
   //P5 sketch body
   const mainSketch = (p) =>{
@@ -176,6 +183,7 @@ function App() {
     p.setup = async () => {
       settings.image = await p.loadImage(settings.imageLink);
       settings.font = await p.loadFont('./fonts/'+settings.fontLink);
+      settings.p5Inst.setAttributes('antialias', false);
       settings.mainCanvas = p.createCanvas(settings.canvasWidth,settings.canvasHeight,p.WEBGL);
       settings.p5Inst.pixelDensity(settings.pixelDensity);
       settings.srcImage = p.createFramebuffer({ width: settings.image.width, height: settings.image.height, textureFiltering: p.NEAREST, format: p.FLOAT});
@@ -242,43 +250,60 @@ function App() {
     }
     p.windowResized = (e) => {
       p.resizeCanvas(window.innerWidth,window.innerHeight);
-      /*
-      the shortest dimension of the output image should always be scaled by scale, but the longest
-      dim should be scaled so that the image stays in original proportion.
-      EG: when window is shrunk in X, image shrinks in Y to stay in proportion
-      
-      */
     }
+
+    // Called automatically after p5.js `setup()`
+    // to set up the rendering pipeline(s)
+    // p.setupAsciify = () => {
+    //   // Fetch relevant objects from the library
+    //   asciifier = p5asciify.asciifier();
+    //   brightnessRenderer = asciifier
+    //     .renderers() // get the renderer manager
+    //     .get("brightness"); // get the "brightness" renderer
+
+    //   edgeRenderer = asciifier
+    //     .renderers() // get the renderer manager
+    //     .get("edge"); // get the "edge" renderer
+
+    //   // Update the font size of the rendering pipeline
+    //   asciifier.fontSize(8);
+
+    //   // Update properties of the brightness renderer
+    //   brightnessRenderer.update({
+    //     enabled: true, // redundant, but for clarity
+    //     characters: " .:-=+*%@#",
+    //     characterColor: "#000000",
+    //     characterColorMode: "fixed", // or "fixed"
+    //     backgroundColor: "#ffffff",
+    //     backgroundColorMode: "fixed", // or "sampled"
+    //     invert: false, // swap char and bg colors
+    //     rotation: 0, // rotation angle in degrees
+    //     flipVertically: false, // flip chars vertically
+    //     flipHorizontally: false, // flip chars horizontally
+    //   });
+
+    //   // Update properties of the edge renderer
+    //   edgeRenderer.update({
+    //     enabled: true, // redundant, but for clarity
+    //     characters: "-/|\\-/|\\", // should be 8 characters long
+    //     characterColor: "#000000",
+    //     characterColorMode: "fixed", // or "sampled"
+    //     backgroundColor: "#ffffff",
+    //     backgroundColorMode: "fixed", // or "sampled"
+    //     invert: false, // swap char and bg colors
+    //     rotation: 0, // rotation angle in degrees
+    //     flipVertically: false, // flip chars vertically
+    //     flipHorizontally: false, // flip chars horizontally
+    //     sampleThreshhold: 16, // sample threshold for edge detection
+    //     sobelThreshold: 0.5, // sobel threshold for edge detection
+    //   });
+    // }
+
     return () => {
         p.remove();
     }
   }
 
-  const noiseDisplaySketch = (p) =>{
-    let noiseCanvas;
-    let noiseShader;
-
-    p.setup = () => {
-      noiseCanvas = p.createCanvas(75,75,p.WEBGL);
-      noiseShader = liquidPNG.createFlowFieldShader(p);
-      noiseCanvas.parent("noise_canvas");
-    }
-    p.draw = () => {
-      p.clear();
-      p.shader(noiseShader);
-      noiseShader.setUniform('uHighFrequencyNoiseScale',settings.highFNoise.scale);
-      noiseShader.setUniform('uMediumFrequencyNoiseScale',settings.mediumFNoise.scale);
-      noiseShader.setUniform('uHighFrequencyNoiseAmplitude',settings.highFNoise.active?settings.highFNoise.amplitude:0.0);
-      noiseShader.setUniform('uMediumFrequencyNoiseAmplitude',settings.mediumFNoise.active?settings.mediumFNoise.amplitude:0.0);
-      noiseShader.setUniform('uLowFrequencyNoiseAmplitude',settings.lowFNoise.active?settings.lowFNoise.amplitude:0.0);
-      noiseShader.setUniform('uLowFrequencyNoiseScale',settings.lowFNoise.scale);
-      noiseShader.setUniform('uViewOffset',[settings.viewWindow.offset.x/settings.width,settings.viewWindow.offset.y/settings.height]);
-      noiseShader.setUniform('uNoiseOffset',[settings.noiseWindow.offset.x/settings.width,settings.noiseWindow.offset.y/settings.height]);
-      p.rect(-noiseCanvas.width / 2, -noiseCanvas.height / 2, noiseCanvas.width, noiseCanvas.height);
-
-    }
-  }
-  // const noiseDisplay = new p5(noiseDisplaySketch,"noise_canvas");
   const p5Reference = new p5(mainSketch,"sketch_canvas");
 
   return (

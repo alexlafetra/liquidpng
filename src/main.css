@@ -102,6 +102,28 @@ input{
     margin-top:3px;
     margin-bottom:3px;
 }
+.liquid_menu_tab_items{
+    padding-left: 10px;
+}
+canvas{
+    image-rendering: pixelated; image-rendering: crisp-edges;
+}
+.liquid_menu_tab_title{
+    width:fit-content;
+    text-align:left;
+    font-size: 15pt;
+    font-family:'Times New Roman', Times, serif;
+    color:#ffffff;
+    background-color: transparent;
+    mix-blend-mode:difference;
+    display:block;
+    cursor:pointer;
+    transition:0.4s;
+}
+.liquid_menu_tab_title:hover{
+    background-color: #ff0000;
+    /* mix-blend-mode:normal; */
+}
 .control_header{
     text-align:left;
     font-size: 12pt;
@@ -123,7 +145,7 @@ input{
 .control_label{
     display:block;
     font-family: monospace;
-    font-size:10pt;
+    font-size:8pt;
     color:#ffffff;
     background-color: transparent;
     mix-blend-mode: difference;

@@ -1,3 +1,5 @@
+const glsl = x => x;
+
 class FlowCanvas{
     constructor(settings){
         this.settings = settings;
@@ -12,11 +14,11 @@ class FlowCanvas{
     saveImage(){
         this.render();
         let dataURL = this.settings.mainCanvas.elt.toDataURL('image/png');
+        console.log(this.settings.mainCanvas);
         let a = document.createElement('a');
         a.href = dataURL;
         a.download = 'liquid.png';
         a.click();
-        this.p5.pixelDensity(this.settings.pixelDensity);
     }
     init(){
         this.p5 = this.settings.p5Inst;
@@ -154,14 +156,13 @@ class FlowCanvas{
         this.outputShader.setUniform('uGridThickness',this.settings.gridThickness);
         this.outputShader.setUniform('uBlurGridIntensity',this.settings.blurGridIntensity);
         this.outputShader.setUniform('uViewOffset',[this.settings.viewWindow.offset.x/this.settings.width,this.settings.viewWindow.offset.y/this.settings.height]);
-        this.p5.quad(1,1,-1,1,-1,-1,1,-1);
+        // this.p5.quad(1,1,-1,1,-1,-1,1,-1);
+        this.p5.quad(1,1,1,-1,-1,-1,-1,1);
         this.p5.resetShader();
     }
     createFlowFieldShader(){
-        const glsl = x => x;
-
         const shaderSource = {
-            vertexShader: `#version 300 es
+            vertexShader: ``+glsl`#version 300 es
             precision highp float;
 
             //screen position attribute
@@ -176,7 +177,7 @@ class FlowCanvas{
             `,
 
             //stole the noise algos from: https://gist.github.com/patriciogonzalezvivo/670c22f3966e662d2f83
-            fragmentShader:`#version 300 es
+            fragmentShader:``+glsl`#version 300 es
             precision highp float;
 
             uniform vec2 uNoiseOffset;
@@ -193,7 +194,7 @@ class FlowCanvas{
             uniform bool uClampFloats;
 
             in vec2 vPosition;
-            out vec4 fragColor;`+this.settings.noiseAlgorithms[this.settings.activeNoiseAlgorithm]+`
+            out vec4 fragColor;`+this.settings.noiseAlgorithms[this.settings.activeNoiseAlgorithm]+glsl`
             float perlinRand(vec2 c){
                 return fract(sin(dot(c.xy ,vec2(12.9898,78.233))) * 43758.5453);
             }
@@ -252,7 +253,7 @@ class FlowCanvas{
     }
     createOutputShader(){
         const shaderSource = {
-            vertexShader:`#version 300 es
+            vertexShader:``+glsl`#version 300 es
             precision highp float;
             precision highp sampler2D;
 
@@ -266,7 +267,7 @@ class FlowCanvas{
                 gl_Position = vec4(aPosition*2.0-1.0,1.0);
             }
             `,
-            fragmentShader:`#version 300 es
+            fragmentShader:``+glsl`#version 300 es
             precision highp float;
             precision highp sampler2D;
 
@@ -350,30 +351,20 @@ class FlowCanvas{
                 }
                 //solid color
                 else if(uBackgroundStyle == 1){
-                    fragColor = vec4(uBackgroundColor,1.0)*(1.0 - imageColor.a) + imageColor;
+                    fragColor = vec4(uBackgroundColor,1.0)*(1.0 - imageColor.a) + (vec4(imageColor.rgb,1.0)*imageColor.a);
                 }
                 //grid
                 else if(uBackgroundStyle == 2){
-                    if(imageColor.a != 0.0){
-                        fragColor = vec4(uBackgroundColor,1.0)*(1.0 - imageColor.a) + imageColor;
+                    vec3 gridColor = uGridColor;
+                    if(alpha < (1.0 / uGridSize - uGridThickness)){
+                        gridColor = uBackgroundColor;
                     }
-                    else{
-                        if(alpha < (1.0 / uGridSize - uGridThickness)){
-                            fragColor = vec4(uBackgroundColor,1.0)*(1.0 - imageColor.a) + imageColor;
-                        }
-                        else{
-                            fragColor = vec4(uGridColor,1.0)*(1.0 - imageColor.a) + imageColor;
-                        }
-                    }
+                    fragColor = vec4(gridColor,1.0)*(1.0 - imageColor.a) + (vec4(imageColor.rgb,1.0)*imageColor.a);
                 }
                 //blur
                 else if(uBackgroundStyle == 3){
-                    if(imageColor.a != 0.0){
-                        fragColor = vec4(uBackgroundColor,1.0)*(1.0 - imageColor.a) + imageColor;
-                    }
-                    else{
-                        fragColor = mix(vec4(uGridColor,1.0),vec4(uBackgroundColor,1.0),1.0 - (alpha * uBlurGridIntensity));
-                    }
+                    vec4 blurColor = mix(vec4(uGridColor,1.0),vec4(uBackgroundColor,1.0),1.0 - (alpha * uBlurGridIntensity));
+                    fragColor = vec4(blurColor.rgb,1.0)*(1.0 - imageColor.a) + (vec4(imageColor.rgb,1.0)*imageColor.a);
                 }
             }
             `

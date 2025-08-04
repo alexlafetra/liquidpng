@@ -7,8 +7,38 @@ import './main.css';
 // import {p5asciify} from 'p5.asciify'
 
 import LiquidUIContainer from './components/ui.jsx'
+import JSZip from 'jszip'
 
 function App() {
+
+  const zip = new JSZip();
+
+  function downloadZip(){
+    zip.generateAsync({type : 'blob' }).then((content) => {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(content);
+      a.download = 'liquidpng_animation.zip';
+      a.click();
+    });
+  }
+
+  function captureFrame(){
+    const domCanvas = settings.mainCanvas.elt;
+
+    domCanvas.toBlob((blob) => {
+      // console.log(settings.recordedFrame);
+      const filename = 'frame_'+String(settings.recordedFrame)+'.png';
+      zip.file(filename,blob);
+      if(settings.recordingFinished && settings.recording){
+        settings.recording = false;
+        settings.recordingFinished = false;
+        settings.recordedFrame = 0;
+        settings.keyframes.active = false;
+        downloadZip();
+      }
+    })
+  }
+
   const resolution = 800;
   let w,h;
   if(window.innerWidth>window.innerHeight){
@@ -20,21 +50,40 @@ function App() {
     w = window.innerHeight/window.innerWidth * resolution;
   }
   const settings = {
+    recording : false,
+    recordingFinished : false,
+    recordedFrame : 0,
     startInHiRes : false,
+    keyframes : {
+      easeType : 'linear',
+      editingKeyframe : 0,
+      active : false,
+      looping : false,
+      currentAnimation : 0,
+      currentFrame : 0,
+      keyframes : [],
+      transitionLength : 30,
+      needsToSetCanvasTo : null,
+    },
     //set to 2.0 for HD
     pixelDensity : 1.0,
     hideUI : false,
     distortionMenu : {open:false},
     backgroundMenu : {open:false},
     imageMenu : {open:true},
+    keyframeMenu : {open:true},
     showHelpText : false,
     imageCoordinateOverflow: 'discard', //options are discard, tile, and extend
     imageLink : './star.png',
+    backgroundImageLink : './test_background.MOV',
+    backgroundImage : null,
     fontLink : 'times.ttf',
     fontOptions : ['times.ttf','arial.ttf','CedarvilleCursive.ttf','chopin.ttf','SFMono.otf','NotoSerifTC.ttf'],
     // options are left, right, and centered
     textAlignment : 'Left',
     inputType : 'text', //options are text or image
+    needsToReloadImage : false,
+
     mainCanvas : null,
     srcImage : null,
     font : null,
@@ -95,11 +144,13 @@ function App() {
       amplitude : 0.1,
       scale: 1.0
     },
+
     clampNoise:false,
     imageScale : 1.0,
     backgroundColor : [0,0,1.0],
     gridColor : [1.0,0,0],
     blurGridIntensity : 1.0,
+    //0 == clear, 1 == color, 2 == image/video, 3 == grid, 4 == blurry-grid
     backgroundStyle : 0,
     gridThickness : 0.001,
     gridSize : 10,
@@ -167,13 +218,119 @@ function App() {
       g.yz = a0.yz * x12.xz + h.yz * x12.yw;
       return 130.0 * dot(m, g);
     }`
-    ],
+    ]
   }
 
   const liquidPNG = new FlowCanvas(settings);
   let asciifier;
   let brightnessRenderer;
   let edgeRenderer;
+
+  function easeInOutSine( t ) {
+    return -0.5 * ( Math.cos( Math.PI * t ) - 1 );
+  }
+  function easeInOutCubic( t ) {
+    return t < 0.5 ? 4 * t * t * t : ( t - 1 ) * ( 2 * t - 2 ) * ( 2 * t - 2 ) + 1;
+  }
+
+
+  function setSettingsFromKeyframe(lerpPercent,active,next,p){
+    const currentAnimation = settings.keyframes.keyframes[active];
+    const nextAnimation = settings.keyframes.keyframes[next];
+    const newFontSize = p.lerp(currentAnimation.fontSize,nextAnimation.fontSize,lerpPercent);
+    switch(settings.keyframes.easeType){
+      case 'linear':
+        break;
+      case 'sine':
+        lerpPercent = easeInOutSine(lerpPercent);
+        break;
+      case 'cubic':
+        lerpPercent = easeInOutCubic(lerpPercent);
+        break;
+    }
+    // settings.fontColor = p.lerpColor(currentAnimation.fontColor,nextAnimation.fontColor,lerpPercent); //Not done yet lmfao
+    settings.viewWindow = {
+      offset: {x:p.lerp(currentAnimation.viewWindow.offset.x,nextAnimation.viewWindow.offset.x,lerpPercent),
+                y:p.lerp(currentAnimation.viewWindow.offset.y,nextAnimation.viewWindow.offset.y,lerpPercent)},
+      origin: {x:p.lerp(currentAnimation.viewWindow.origin.x,nextAnimation.viewWindow.origin.x,lerpPercent),
+                y:p.lerp(currentAnimation.viewWindow.origin.y,nextAnimation.viewWindow.origin.y,lerpPercent)},
+    };
+    settings.noiseWindow = {
+      offset: {x:p.lerp(currentAnimation.noiseWindow.offset.x,nextAnimation.noiseWindow.offset.x,lerpPercent),
+                y:p.lerp(currentAnimation.noiseWindow.offset.y,nextAnimation.noiseWindow.offset.y,lerpPercent)},
+      origin: {x:p.lerp(currentAnimation.noiseWindow.origin.x,nextAnimation.noiseWindow.origin.x,lerpPercent),
+                y:p.lerp(currentAnimation.noiseWindow.origin.y,nextAnimation.noiseWindow.origin.y,lerpPercent)},
+    };
+    settings.lowFNoise = {
+      active : true,
+      amplitude : p.lerp(currentAnimation.lowFNoise.amplitude,nextAnimation.lowFNoise.amplitude,lerpPercent),
+      scale : p.lerp(currentAnimation.lowFNoise.scale,(nextAnimation.lowFNoise.scale),lerpPercent)
+    };
+    settings.mediumFNoise = {
+      active : true,
+      amplitude : p.lerp(currentAnimation.mediumFNoise.amplitude,nextAnimation.mediumFNoise.amplitude,lerpPercent),
+      scale : p.lerp(currentAnimation.mediumFNoise.scale,nextAnimation.mediumFNoise.scale,lerpPercent)
+    };
+    settings.highFNoise = {
+      active : true,
+      amplitude : p.lerp(currentAnimation.highFNoise.amplitude,nextAnimation.highFNoise.amplitude,lerpPercent),
+      scale : p.lerp(currentAnimation.highFNoise.scale,nextAnimation.highFNoise.scale,lerpPercent)
+    };
+    settings.perlinNoise = {
+      active : true,
+      amplitude : p.lerp(currentAnimation.perlinNoise.amplitude,nextAnimation.perlinNoise.amplitude,lerpPercent),
+      scale : p.lerp(currentAnimation.perlinNoise.scale,nextAnimation.perlinNoise.scale,lerpPercent)
+    };
+    settings.imageScale = p.lerp(currentAnimation.imageScale,nextAnimation.imageScale,lerpPercent);
+    if(newFontSize != settings.fontSize){
+      settings.fontSize = newFontSize;
+      settings.needsToReloadImage = true;
+    }
+    
+    // settings.backgroundColor = p.lerpColor(currentAnimation.backgroundColor,nextAnimation.backgroundColor,lerpPercent);
+  }
+
+  function updateAnimation(p){
+    //if the flag is set for jumping the sim to an animation frame (and if that frame exists)
+    if(settings.keyframes.needsToSetCanvasTo != null && !(settings.keyframes.keyframes[settings.keyframes.needsToSetCanvasTo] === undefined)){
+      setSettingsFromKeyframe(0,settings.keyframes.needsToSetCanvasTo,settings.keyframes.needsToSetCanvasTo,p);
+      settings.keyframes.needsToSetCanvasTo = null;
+    }
+    else if(settings.keyframes.active){
+      if((settings.keyframes.keyframes[settings.keyframes.currentAnimation] === undefined)||(settings.keyframes.keyframes[settings.keyframes.currentAnimation+1] === undefined)){
+        settings.keyframes.active = false;
+        settings.keyframes.currentAnimation = 0;
+        return;
+      }
+      const lerpPercent = settings.keyframes.currentFrame/settings.keyframes.transitionLength;
+      setSettingsFromKeyframe(lerpPercent,settings.keyframes.currentAnimation,settings.keyframes.currentAnimation+1,p);
+      
+      //update frame (within animation)
+      settings.keyframes.currentFrame++;
+      if(settings.keyframes.currentFrame>settings.keyframes.transitionLength){
+        settings.keyframes.currentFrame = 0;
+        //jump to next animation
+        if(!(settings.keyframes.keyframes[settings.keyframes.currentAnimation+2] === undefined)){
+          settings.keyframes.currentAnimation++;
+        }
+        //if ur looping
+        else if(settings.keyframes.looping){
+          settings.keyframes.currentAnimation = 0;
+          if(settings.recording){
+            settings.recordingFinished = true;
+          }
+        }
+        //if not
+        else{
+          settings.keyframes.active = false;
+          settings.keyframes.currentAnimation = 0;
+          if(settings.recording){
+            settings.recordingFinished = true;
+          }
+        }
+      }
+    }
+  }
 
   //P5 sketch body
   const mainSketch = (p) =>{
@@ -182,6 +339,7 @@ function App() {
 
     p.setup = async () => {
       settings.image = await p.loadImage(settings.imageLink);
+      settings.backgroundImage = settings.image;
       settings.font = await p.loadFont('./fonts/'+settings.fontLink);
       settings.p5Inst.setAttributes('antialias', false);
       settings.mainCanvas = p.createCanvas(settings.canvasWidth,settings.canvasHeight,p.WEBGL);
@@ -192,7 +350,23 @@ function App() {
       liquidPNG.init();
     }
     p.draw = () => {
+      updateAnimation(p);
       liquidPNG.render();
+      if(settings.recording){
+        p.frameRate(2);
+        captureFrame();
+        settings.recordedFrame++;
+      }
+      else{
+        p.frameRate(60);
+      }
+    }
+    p.keyPressed = () => {
+      if(p.key == 'p'){
+        settings.keyframes.active = true;
+      }
+      // if(p.key == 'i' || p.key == 'I'){
+      //   saveKeyframe();
     }
     p.mouseReleased = () =>{
         if(p.keyIsDown(p.SHIFT)){
@@ -201,7 +375,7 @@ function App() {
                 const dX = settings.viewWindow.end.x - settings.viewWindow.start.x;
                 const dY = settings.viewWindow.end.y - settings.viewWindow.start.y;
                 settings.viewWindow.origin.x -= dX;
-                settings.viewWindow.origin.y += dY;
+                settings.viewWindow.origin.y -= dY;
             }
             settings.viewWindow.dragStarted = false;
             // liquidPNG.loadText("two touches"); 
@@ -212,7 +386,7 @@ function App() {
                 const dX = settings.noiseWindow.end.x - settings.noiseWindow.start.x;
                 const dY = settings.noiseWindow.end.y - settings.noiseWindow.start.y;
                 settings.noiseWindow.origin.x -= dX;
-                settings.noiseWindow.origin.y += dY;
+                settings.noiseWindow.origin.y -= dY;
             }
             settings.noiseWindow.dragStarted = false;
         }
@@ -229,7 +403,7 @@ function App() {
                     const dX = settings.viewWindow.end.x - settings.viewWindow.start.x;
                     const dY = settings.viewWindow.end.y - settings.viewWindow.start.y;
                     settings.viewWindow.offset.x = -dX + settings.viewWindow.origin.x;
-                    settings.viewWindow.offset.y = dY+ settings.viewWindow.origin.y;
+                    settings.viewWindow.offset.y = -dY+ settings.viewWindow.origin.y;
                 }
                 // liquidPNG.loadText("two touches"); 
             }
@@ -243,7 +417,7 @@ function App() {
                     const dX = settings.noiseWindow.end.x - settings.noiseWindow.start.x;
                     const dY = settings.noiseWindow.end.y - settings.noiseWindow.start.y;
                     settings.noiseWindow.offset.x = -dX + settings.noiseWindow.origin.x;
-                    settings.noiseWindow.offset.y = dY+ settings.noiseWindow.origin.y;
+                    settings.noiseWindow.offset.y = -dY+ settings.noiseWindow.origin.y;
                 }
             }
         }

@@ -4,6 +4,7 @@ import LiquidDropdown from './dropdown.jsx'
 import LiquidSlider from './slider.jsx'
 import LiquidCheckbox from './checkbox.jsx'
 import LiquidMenuTab from './menutab.jsx'
+import LiquidFilePicker from './filepicker.jsx'
 
 function LiquidBackgroundSettings({settings}){
     const [backgroundStyle,setBackgroundStyle] = useState(settings.backgroundStyle);
@@ -16,7 +17,7 @@ function LiquidBackgroundSettings({settings}){
         }
         return null;
     }
-    const options = ["transparent","color","grid","blur"];
+    const options = ["transparent","color","image/video","grid","blur"];
     const callback = (val) => {
         switch(val){
             case "transparent":
@@ -25,15 +26,52 @@ function LiquidBackgroundSettings({settings}){
             case "color":
                 settings.backgroundStyle = 1;
                 break;
-            case "grid":
+            case "image/video":
                 settings.backgroundStyle = 2;
                 break;
-            case "blur":
+            case "grid":
                 settings.backgroundStyle = 3;
+                break;
+            case "blur":
+                settings.backgroundStyle = 4;
                 break;
             }
         setBackgroundStyle(settings.backgroundStyle);
     }
+
+    const openFileURL = async (e) => {
+        //make sure there's a file here
+        if(e.target.files.length > 0){
+
+            //create a file reader object
+            const reader = new FileReader();
+
+            //attach a callback for when the FR is done opening the img
+            reader.onload = async (e2) => {
+                const dataURL = e2.target.result;
+                // console.log(e);
+                //video
+                if(dataURL.startsWith('data:video')){
+                    const vid = settings.p5Inst.createVideo([dataURL]);
+                    vid.hide();
+                    vid.volume(0);
+                    vid.loop(); // or .play()
+
+                    // Store the ready video in your settings
+                    settings.backgroundImage = vid;
+                    settings.backgroundStyle = 2;
+                }
+                //image
+                else if(dataURL.startsWith('data:image')){
+                    //using p5's loadImage()
+                    settings.backgroundImage = await settings.p5Inst.loadImage(reader.result);
+                    settings.backgroundStyle = 2;
+                }
+            };
+            reader.readAsDataURL(e.target.files[0]);
+        }
+    }
+
     let children;
     switch(backgroundStyle){
         //transparent background
@@ -53,8 +91,17 @@ function LiquidBackgroundSettings({settings}){
                 </>
             );
             break;
-        //grid background
+        //image/video
         case 2:
+            children = (
+                <>
+                <LiquidDropdown showHelpText = {settings.showHelpText} helpText = {'<-- change background style'} callback = {callback} options = {options} defaultValue = {"clear"}></LiquidDropdown>
+                <LiquidFilePicker callback = {openFileURL} helpText = "<-- select background image" showHelpText = {settings.showHelpText}></LiquidFilePicker>
+                </>
+            )
+            break;
+        //grid background
+        case 3:
             children = (
                 <>
                 <LiquidDropdown showHelpText = {settings.showHelpText} helpText = {'<-- change background style'} callback = {callback} options = {options} defaultValue = {"clear"}></LiquidDropdown>
@@ -67,7 +114,7 @@ function LiquidBackgroundSettings({settings}){
             );
             break;
         //blur
-        case 3:
+        case 4:
             children = (
                 <>
                 <LiquidDropdown showHelpText = {settings.showHelpText} helpText = {'<-- change background style'} callback = {callback} options = {options} defaultValue = {"clear"}></LiquidDropdown>

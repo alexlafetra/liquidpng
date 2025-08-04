@@ -3,6 +3,7 @@ import LiquidImageSettings from './imagesettings.jsx'
 import LiquidCheckbox from './checkbox.jsx'
 import { useState } from 'react'
 import LiquidDistortionSettings from './distortionsettings.jsx'
+import LiquidKeyframeSettings from './keyframesettings.jsx'
 
 function LiquidUIContainer({liquidPNGInstance,settings}){
     const [inputType,setInputType] = useState(settings.inputType);
@@ -40,6 +41,7 @@ function LiquidUIContainer({liquidPNGInstance,settings}){
           {/* <LiquidSlider showHelpText = {settings.showHelpText} helpText = {'<-- scale the whole scene'} callback = {(val) => {settings.globalScale = parseFloat(val);}} label = {"global scale"} min = {-10.0} max = {10.0} stepsize = {0.01} defaultValue = {settings.globalScale}/> */}
           <LiquidBackgroundSettings settings = {settings}></LiquidBackgroundSettings>
           <LiquidDistortionSettings settings = {settings} liquidPNGInstance = {liquidPNGInstance}></LiquidDistortionSettings>
+          <LiquidKeyframeSettings settings = {settings} liquidPNGInstance={liquidPNGInstance}></LiquidKeyframeSettings>
           </>
         }
       </div>

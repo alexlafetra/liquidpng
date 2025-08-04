@@ -1,5 +1,10 @@
 const glsl = x => x;
 
+
+/*
+feed video in as backgroundcolor AND textcolor? but the pixels it grqbs need to be from the original coords, not warped coords
+*/
+
 class FlowCanvas{
     constructor(settings){
         this.settings = settings;
@@ -130,6 +135,13 @@ class FlowCanvas{
         this.flowFieldCanvas.end();
     }
     render(){
+        if(this.settings.needsToReloadImage){
+            this.settings.needsToReloadImage = false;
+            if(this.settings.inputType == 'image')
+                this.reloadImage();
+            else
+                this.reloadText();
+        }
         if(this.settings.animation.active){
             this.settings.noiseWindow.offset.x += this.settings.animation.xMotion;
             this.settings.noiseWindow.offset.y += this.settings.animation.yMotion;
@@ -145,19 +157,21 @@ class FlowCanvas{
         //scaling to keep the image in proportion when the canvas is at a different aspect ratio
         const proportionScale = {
             x:this.settings.srcImage.width/this.settings.mainCanvas.width * 400.0/this.settings.fontSize,
-            y:-this.settings.srcImage.height/this.settings.mainCanvas.height * 400.0/this.settings.fontSize
+            y:this.settings.srcImage.height/this.settings.mainCanvas.height * 400.0/this.settings.fontSize
         };
         this.outputShader.setUniform('uImageScale',[this.settings.imageScale*proportionScale.x*this.settings.globalScale,this.settings.imageScale*proportionScale.y*this.settings.globalScale]);
         this.outputShader.setUniform('uFlowTexture',this.flowFieldCanvas);
         this.outputShader.setUniform('uBackgroundStyle',this.settings.backgroundStyle);
+        this.outputShader.setUniform('uUseBackgroundImage',this.settings.useBackgroundImage);
         this.outputShader.setUniform('uBackgroundColor',this.settings.backgroundColor);
+        this.outputShader.setUniform('uBackgroundImage',this.settings.backgroundImage);
         this.outputShader.setUniform('uGridSize',this.settings.gridSize);
         this.outputShader.setUniform('uGridColor',this.settings.gridColor);
         this.outputShader.setUniform('uGridThickness',this.settings.gridThickness);
         this.outputShader.setUniform('uBlurGridIntensity',this.settings.blurGridIntensity);
         this.outputShader.setUniform('uViewOffset',[this.settings.viewWindow.offset.x/this.settings.width,this.settings.viewWindow.offset.y/this.settings.height]);
-        // this.p5.quad(1,1,-1,1,-1,-1,1,-1);
-        this.p5.quad(1,1,1,-1,-1,-1,-1,1);
+        this.p5.quad(1,1,-1,1,-1,-1,1,-1);
+        // this.p5.quad(1,1,1,-1,-1,-1,-1,1);
         this.p5.resetShader();
     }
     createFlowFieldShader(){
@@ -263,7 +277,7 @@ class FlowCanvas{
             out vec2 vPosition;
 
             void main(){
-                vPosition = vec2(aPosition.x,aPosition.y);
+                vPosition = vec2(aPosition.x,1.0 - aPosition.y);
                 gl_Position = vec4(aPosition*2.0-1.0,1.0);
             }
             `,
@@ -274,7 +288,10 @@ class FlowCanvas{
             in vec2 vPosition;
             uniform sampler2D uFlowTexture;
             uniform sampler2D uTargetImage;
+            uniform sampler2D uBackgroundImage;
             uniform vec2 uViewOffset;
+
+            uniform bool uUseBackgroundImage;
             
             //value to scale the image by
             uniform vec2 uImageScale;
@@ -324,6 +341,7 @@ class FlowCanvas{
                             skipImage = true;
                         }
                 }
+
                 //check if it's on a grid coordinate
                 float alpha = max(max(1.0 / uGridSize - mod(warpedCoordinates.x,1.0/uGridSize),mod(warpedCoordinates.x,1.0/uGridSize)),max(1.0 / uGridSize - mod(warpedCoordinates.y,1.0/uGridSize),mod(warpedCoordinates.y,1.0/uGridSize)));
                 vec4 gridColor = vec4(0.0,0.0,1.0,1.0);
@@ -339,10 +357,12 @@ class FlowCanvas{
                 
                 //clear background
                 if(uBackgroundStyle == 0){
+                    //image
                     if(uInputType == 1){
                         fragColor = imageColor;
                     }
-                    else if(imageColor.a != 0.0 && !(imageColor.r >= 0.9 && imageColor.g >= 0.9 && imageColor.b >= 0.9)){
+                    //text
+                    else if(imageColor.a != 0.0){
                         fragColor = imageColor;
                     }
                     else{
@@ -353,8 +373,12 @@ class FlowCanvas{
                 else if(uBackgroundStyle == 1){
                     fragColor = vec4(uBackgroundColor,1.0)*(1.0 - imageColor.a) + (vec4(imageColor.rgb,1.0)*imageColor.a);
                 }
-                //grid
+                //image
                 else if(uBackgroundStyle == 2){
+                    fragColor = texture(uBackgroundImage,vPosition)*(1.0 - imageColor.a) + (vec4(imageColor.rgb,1.0)*imageColor.a);
+                }
+                //grid
+                else if(uBackgroundStyle == 3){
                     vec3 gridColor = uGridColor;
                     if(alpha < (1.0 / uGridSize - uGridThickness)){
                         gridColor = uBackgroundColor;
@@ -362,7 +386,7 @@ class FlowCanvas{
                     fragColor = vec4(gridColor,1.0)*(1.0 - imageColor.a) + (vec4(imageColor.rgb,1.0)*imageColor.a);
                 }
                 //blur
-                else if(uBackgroundStyle == 3){
+                else if(uBackgroundStyle == 4){
                     vec4 blurColor = mix(vec4(uGridColor,1.0),vec4(uBackgroundColor,1.0),1.0 - (alpha * uBlurGridIntensity));
                     fragColor = vec4(blurColor.rgb,1.0)*(1.0 - imageColor.a) + (vec4(imageColor.rgb,1.0)*imageColor.a);
                 }

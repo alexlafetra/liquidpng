@@ -41,34 +41,40 @@ function LiquidBackgroundSettings({settings}){
 
     const openFileURL = async (e) => {
         //make sure there's a file here
-        if(e.target.files.length > 0){
+        if(e.target.files.length <= 0)
+            return;
 
+        const file = e.target.files[0];
+        const isVideo = file.type.startsWith('video/');
+        const isImage = file.type.startsWith('image/');
+
+        // console.log(e);
+        //video
+        if(isVideo){
+            const videoURL = URL.createObjectURL(file);
+            const vid = settings.p5Inst.createVideo([videoURL]);
+            vid.hide();
+            vid.volume(0);
+            vid.loop(); // or .play()
+            vid.elt.onloadedmetadata = () => {
+                settings.backgroundImage = vid;
+                settings.backgroundStyle = 2;
+                URL.revokeObjectURL(videoURL);
+            }
+        }
+        //image
+        else if(isImage){
             //create a file reader object
             const reader = new FileReader();
-
             //attach a callback for when the FR is done opening the img
             reader.onload = async (e2) => {
                 const dataURL = e2.target.result;
-                // console.log(e);
-                //video
-                if(dataURL.startsWith('data:video')){
-                    const vid = settings.p5Inst.createVideo([dataURL]);
-                    vid.hide();
-                    vid.volume(0);
-                    vid.loop(); // or .play()
-
-                    // Store the ready video in your settings
-                    settings.backgroundImage = vid;
-                    settings.backgroundStyle = 2;
-                }
-                //image
-                else if(dataURL.startsWith('data:image')){
-                    //using p5's loadImage()
-                    settings.backgroundImage = await settings.p5Inst.loadImage(reader.result);
-                    settings.backgroundStyle = 2;
-                }
-            };
-            reader.readAsDataURL(e.target.files[0]);
+                //using p5's loadImage()
+                settings.backgroundImage = await settings.p5Inst.loadImage(reader.result);
+                settings.backgroundStyle = 2;
+            }
+            //read in the file
+            reader.readAsDataURL(file);
         }
     }
 
@@ -97,6 +103,7 @@ function LiquidBackgroundSettings({settings}){
                 <>
                 <LiquidDropdown showHelpText = {settings.showHelpText} helpText = {'<-- change background style'} callback = {callback} options = {options} defaultValue = {"clear"}></LiquidDropdown>
                 <LiquidFilePicker callback = {openFileURL} helpText = "<-- select background image" showHelpText = {settings.showHelpText}></LiquidFilePicker>
+                <LiquidCheckbox></LiquidCheckbox>
                 </>
             )
             break;

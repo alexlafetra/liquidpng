@@ -139,7 +139,7 @@ function LiquidKeyframeSettings({settings,liquidPNGInstance}){
         <LiquidDropdown label = {"ease type"} showHelpText = {settings.showHelpText} helpText = {'<-- pick interpolation type'} callback = {(val) => {settings.keyframes.easeType = val;}} options = {['linear','sine','cubic']} defaultValue = {settings.keyframes.easeType}></LiquidDropdown>
         <LiquidButton title = {'play'} callback = {() => {settings.keyframes.active = !settings.keyframes.active;setPlaying(settings.keyframes.active);}}></LiquidButton>
         <LiquidCheckbox title = {'loop'} setTitleInsideBrackets = {false} callback = {(val) => {settings.keyframes.looping = val;}}></LiquidCheckbox>
-        <LiquidSlider callback = {(val) => {settings.keyframes.transitionLength = val;}} label = {"trans. time"} min = {"1"} max = {"120"} stepsize = {"1"} defaultValue = {settings.keyframes.transitionLength}/>
+        <LiquidSlider callback = {(val) => {settings.keyframes.transitionLength = val;}} label = {"trans. time"} min = {"1"} max = {"480"} stepsize = {"1"} defaultValue = {settings.keyframes.transitionLength}/>
         <LiquidButton title = {'render & save'} callback = {()=>{settings.keyframes.active = true; settings.recording = true; setPlaying(true);}}></LiquidButton>
         </>
     );

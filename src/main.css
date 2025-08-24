@@ -10,12 +10,16 @@ html{
             user-select: none; /* Non-prefixed version, currently
                                   supported by Chrome, Edge, Opera and Firefox */
 }
+body{
+    background-color: #ffffff;
+}
 
 input{
     color:#ffffff;
-    font-family: monospace;
+    /* font-family: monospace; */
+    font-family:'Times New Roman', Times, serif;
     background-color: #ffffff;
-    font-size:10pt;
+    font-size:12pt;
 }
 /* App */
 .app_container{
@@ -75,14 +79,13 @@ input{
     overflow-y: scroll;
     overflow-x: hidden;
     padding-left:20px;
-    background-color: transparent;
     backface-visibility: visible;
     -webkit-backface-visibility: visible;
     width:fit-content;
 }
 /* hiding the scrollbar */
 .ui_container::-webkit-scrollbar {
-        display: none;
+    display: none;
 }
 /* box that holds helptext w/ the component */
 .liquid_component_with_helpText{
@@ -93,7 +96,8 @@ input{
 .liquid_help_text{
     background-color: transparent;
     color:#ffffff;
-    font-family:monospace;
+    /* font-family:monospace; */
+    font-family:'Times New Roman', Times, serif;
     mix-blend-mode: difference;
     padding-left:20px;
     align-items: center;
@@ -111,17 +115,17 @@ canvas{
 .liquid_menu_tab_title{
     width:fit-content;
     text-align:left;
-    font-size: 15pt;
+    font-size: 12pt;
     font-family:'Times New Roman', Times, serif;
     color:#ffffff;
     background-color: transparent;
-    mix-blend-mode:difference;
+    /* mix-blend-mode:difference; */
     display:block;
     cursor:pointer;
-    transition:0.4s;
 }
 .liquid_menu_tab_title:hover{
-    background-color: #ff0000;
+    mix-blend-mode:difference;
+    transition:0.1s;
     /* mix-blend-mode:normal; */
 }
 .control_header{
@@ -144,26 +148,15 @@ canvas{
 }
 .control_label{
     display:block;
-    font-family: monospace;
-    font-size:8pt;
+    /* font-family: monospace; */
+    font-family:'Times New Roman', Times, serif;
+    font-size:12pt;
     color:#ffffff;
     background-color: transparent;
     mix-blend-mode: difference;
 }
 .liquid_text_box{
     max-width:150px;
-}
-.liquid_dropdown{
-    width:fit-content;
-    display:block;
-    /* appearance: none; */
-    padding: 3px 3px;
-    border: none;
-    border-radius: 0px;
-    background-color: #ffffff;
-    color:#000000;
-    font-family: monospace;
-    mix-blend-mode: difference;
 }
 
 .flow_slider_container{
@@ -174,7 +167,8 @@ canvas{
 }
 
 .liquid_file_input{
-    font-family: monospace;
+    /* font-family: monospace; */
+    font-family:'Times New Roman', Times, serif;
     color:#0000ff;
     text-decoration: underline;
     background-color: #ffffff;
@@ -186,8 +180,9 @@ canvas{
 }
 .liquid_checkbox{
     cursor:pointer;
-    font-family: monospace;
-
+    /* font-family: monospace; */
+    font-family:'Times New Roman', Times, serif;
+    /* vertical-align: center; */
 }
 .checkbox_header{
     text-align:left;
@@ -198,7 +193,8 @@ canvas{
 }
 
 .liquid_button{
-    font-family: monospace;
+    /* font-family: monospace; */
+    font-family:'Times New Roman', Times, serif;
     color:#000000;
     background-color: #ffffff;
     cursor:pointer;
@@ -207,58 +203,39 @@ canvas{
     margin-top:3px;
     margin-bottom:3px;
 }
-
-/* slider code adapted from: https://www.w3schools.com/howto/howto_js_rangeslider.asp and https://blog.logrocket.com/creating-custom-css-range-slider-javascript-upgrades/ */
-.liquid_slider_container{
-    width:fit-content;
+.liquid_button:hover{
+    background-color: #0000ff;
+    mix-blend-mode: normal;
 }
 
-.liquid_slider_label{
-    position:absolute;
-    font-family: monospace;
-    pointer-events:none;
-    z-index:1;
-    color:#ffffff;
-    padding-left:6px;
-    padding-top:2px;
-    /* padding:2px; */
-    cursor:pointer;
-    mix-blend-mode:difference;
-    text-align: center;
-}
-/* The slider itself */
-.liquid_slider {
-    -webkit-appearance: none;  /* Override default CSS styles */
-    appearance: none;
-    width: 100%; /* Full-width */
-    height: 20px; /* Specified height */
-    background-color:transparent;
-    outline: none; /* Remove outline */
-    overflow: hidden;
-    cursor:pointer;
-    mix-blend-mode:difference;
-}
 /* The slider handle (use -webkit- (Chrome, Opera, Safari, Edge) and -moz- (Firefox) to override default look) */
 .liquid_slider::-webkit-slider-thumb {
     -webkit-appearance: none; /* Override default look */
     appearance: none;
-    width: 30px; /* Set a specific slider handle width */
+    width: 1px; /* Set a specific slider handle width */
     height: 20px; /* Slider handle height */
     background: #ffffff;
-    box-shadow: -407px 0 0 400px #ffffff;
+    box-shadow: -400px 0 0 400px #ffffff;
 }
 
 .liquid_color_picker{
     mix-blend-mode: normal;
+    border-radius:4px;
 }
 .liquid_color_picker .react-colorful{
+    mix-blend-mode: normal;
     width: 80px;
-    height: 80px;
+    height: 50px;
     border-radius:0px;
 }
 .liquid_color_picker .react-colorful__hue {
+    mix-blend-mode: normal;
     height: 10px;
     border-radius:0px;
+    
+}
+.liquid_color_picker .react-colorful__saturation {
+    border-radius:0px;  
 }
 /* Custom poiners */
 .liquid_color_picker .react-colorful__saturation-pointer {
@@ -266,7 +243,6 @@ canvas{
     height: 15px;
     border-radius: 0px;
     border:none;
-    /* border-color:black; */
 }
 .liquid_color_picker .react-colorful__hue-pointer,
 .liquid_color_picker .react-colorful__alpha-pointer {
@@ -275,6 +251,22 @@ canvas{
     border-radius: 0px;
     border:none;
 }
+
+@keyframes example {
+    from {background-color: #ff77ff;height:30px;width:30px;margin:0px;}
+    to {background-color: #ff0000;height:25px;width:25px;margin:2.5px;}
+}
+
+.keyframe_display{
+    background-color : #ffccff;
+}
 .keyframe_display:hover{
     cursor:pointer;
+    background-color: #0000ff;
+    border-color:blue;
+    transition:0.1s;
+}
+.new_keyframe_button:hover{
+    cursor:pointer;
+    background-color:blue;
 }

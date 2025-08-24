@@ -10,7 +10,10 @@ import LiquidMenuTab from './menutab.jsx'
 function LiquidImageSettings({parentCallback,settings,liquidPNGInstance}){
 
     const [inputType,setInputType] = useState(settings.inputType);
-
+    const [imageCoordinateOverflow,setImageCoordinateOverflow] = useState(settings.imageCoordinateOverflow);
+    const [fontLink,setFontLink] = useState(settings.fontLink);
+    const [textAlignment,setTextAlignment] = useState(settings.textAlignment);
+    
     //used for updating the color slider
     function hexToRgb(hex) {
         const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -34,11 +37,12 @@ function LiquidImageSettings({parentCallback,settings,liquidPNGInstance}){
         setInputType(val);
         parentCallback(val);
     }
-    const alignOptions = ['Left','Center','Right'];
+    const alignOptions = ['left','center','right'];
     const changeTextAlignCallback = (val) => {
         if(val !== settings.textAlignment){
             settings.textAlignment = val;
             liquidPNGInstance.reloadText();
+            setTextAlignment(val);
         }
     }
 
@@ -59,30 +63,30 @@ function LiquidImageSettings({parentCallback,settings,liquidPNGInstance}){
             reader.readAsDataURL(e.target.files[0]);
         }
     }
-
-    const children = (inputType == 'image')?(
+    const nonspecificChildren = (
+        <>
+            <LiquidSlider callback = {(val) => {settings.pixelDensity = parseFloat(val);liquidPNGInstance.reset();}} label = {"canvas resolution "} showHelpText = {settings.showHelpText} helpText = '<-- canvas resolution (high values ==> high memory usage)' min = {"0.01"} max = {"5.0"} stepsize = {"0.01"} defaultValue = {settings.pixelDensity}/>
+            <LiquidDropdown label = "warping " callback = {changeInputCallback} options = {options} value = {inputType} showHelpText = {settings.showHelpText} helpText = "<-- choose between text or image input"></LiquidDropdown>
+            <LiquidSlider callback = {(val) => {settings.imageScale = val}} label = {inputType + " scale: "} min = {"0.01"} max = {"4.0"} stepsize = {"0.01"} defaultValue = {settings.imageScale} showHelpText = {settings.showHelpText} helpText = "<-- shrink/grow image"/>
+            <LiquidDropdown callback = {(val) => {settings.imageCoordinateOverflow = val; setImageCoordinateOverflow(val);}} label = 'handle edges by ' options = {['extending','tiling','discarding']} value = {imageCoordinateOverflow} showHelpText = {settings.showHelpText} helpText = "<-- choose how to handle image coordinate overflow"></LiquidDropdown>
+        </>
+    );
+    const specificChildren = (inputType == 'image')?(
             <>
-            <LiquidDropdown label = {"canvas rez"} showHelpText = {settings.showHelpText} helpText = {'<-- canvas resolution (high values might run out of memory)'} callback = {(val) => {settings.pixelDensity = parseFloat(val);liquidPNGInstance.reset();}} options = {[0.1,0.25,0.5,1.0,2.0,3.0,4.0]} defaultValue = {settings.pixelDensity}></LiquidDropdown>
-            <LiquidDropdown callback = {changeInputCallback} options = {options} defaultValue = {settings.inputType} showHelpText = {settings.showHelpText} helpText = "<-- choose between text or image input"></LiquidDropdown>
             <LiquidFilePicker callback = {openFileURL} helpText = "<-- select an image to warp" showHelpText = {settings.showHelpText}></LiquidFilePicker>
-            <LiquidSlider callback = {(val) => {settings.imageScale = val}} label = {"scale"} showHelpText = {settings.showHelpText} helpText = "<-- shrink/grow image" min = {"0.01"} max = {"10.0"} stepsize = {"0.01"} defaultValue = {settings.imageScale}/>
-            <LiquidDropdown callback = {(val) => {settings.imageCoordinateOverflow = val}} label = 'overflow' showHelpText = {settings.showHelpText} helpText = "<-- choose how to handle image coordinate overflow" options = {['extend','tile','discard']} defaultValue = {settings.imageCoordinateOverflow}></LiquidDropdown>
             </>
         ):(
         <>
-            <LiquidDropdown label = {"canvas rez"} showHelpText = {settings.showHelpText} helpText = {'<-- canvas resolution (high values might run out of memory)'} callback = {(val) => {settings.pixelDensity = parseFloat(val);liquidPNGInstance.reset();}} options = {[0.1,0.25,0.5,1.0,2.0,3.0,4.0]} defaultValue = {settings.pixelDensity}></LiquidDropdown>
-            <LiquidDropdown callback = {changeInputCallback} options = {options} defaultValue = {settings.inputType} showHelpText = {settings.showHelpText} helpText = "<-- choose between text or image input"></LiquidDropdown>
             <LiquidTextBox className = "text_input_box" showHelpText = {settings.showHelpText} helpText = "<-- put your text here" placeholderText = {settings.displayText} callback = {(event) => {settings.displayText = event.target.value;liquidPNGInstance.loadText(settings.displayText);}}></LiquidTextBox>
-            <LiquidDropdown callback = {async (val) => {settings.fontLink = val; settings.font = await settings.p5Inst.loadFont('./fonts/'+settings.fontLink);liquidPNGInstance.reloadText();}} showHelpText = {settings.showHelpText} helpText = "<-- select font" options = {settings.fontOptions} defaultValue = {settings.inputType}></LiquidDropdown>
-            <LiquidDropdown callback = {changeTextAlignCallback} options = {alignOptions} defaultValue = {settings.textAlignment} showHelpText = {settings.showHelpText} helpText = "<-- set text alignment"></LiquidDropdown>
-            <LiquidSlider callback = {(val) => {settings.imageScale = val}} label = {"scale"} min = {"0.01"} max = {"10.0"} stepsize = {"0.01"} defaultValue = {settings.imageScale} showHelpText = {settings.showHelpText} helpText = "<-- shrink/grow image"/>
-            <LiquidDropdown callback = {(val) => {settings.imageCoordinateOverflow = val}} label = 'overflow' options = {['extend','tile','discard']} defaultValue = {settings.imageCoordinateOverflow} showHelpText = {settings.showHelpText} helpText = "<-- choose how to handle image coordinate overflow"></LiquidDropdown>
-            <LiquidSlider callback = {(val) => {settings.fontSize = parseInt(val); liquidPNGInstance.loadText(settings.displayText);}} label = {"text res"} min = {"1"} max = {"400"} stepsize = {"1"} defaultValue = {settings.fontSize} showHelpText = {settings.showHelpText} helpText = "<-- change font size/resolution"/>
+            <LiquidCheckbox title = {'lock bounding box'} showHelpText = {settings.showHelpText} helpText = {'<-- stop new text from updating current bnd bx'} defaultState={!settings.updateTextBoundingBox} callback = {(val) => {settings.updateTextBoundingBox = !val;if(settings.updateTextBoundingBox){liquidPNGInstance.loadText(settings.displayText);}}}></LiquidCheckbox>
+            <LiquidDropdown label = 'font: ' callback = {async (val) => {settings.fontLink = val; settings.font = await settings.p5Inst.loadFont('./fonts/'+settings.fontLink);liquidPNGInstance.reloadText();setFontLink(val);}} showHelpText = {settings.showHelpText} helpText = "<-- select font" options = {settings.fontOptions} value = {fontLink}></LiquidDropdown>
+            <LiquidSlider callback = {(val) => {settings.fontSize = parseInt(val); liquidPNGInstance.loadText(settings.displayText);}} label = {"font resolution: "} min = {"1"} max = {"400"} stepsize = {"1"} defaultValue = {settings.fontSize} showHelpText = {settings.showHelpText} helpText = "<-- change font size/resolution"/>
+            <LiquidDropdown label = 'align to the ' callback = {changeTextAlignCallback} options = {alignOptions} value = {textAlignment} showHelpText = {settings.showHelpText} helpText = "<-- set text alignment"></LiquidDropdown>
             <LiquidColorPicker callback = {(val) => {val = hexToRgb(val); settings.fontColor = [val.r/255.0,val.g/255.0,val.b/255.0];}} defaultValue = {'#ff0000'} label = {"text color"} showHelpText = {settings.showHelpText} helpText = "<-- change text color"></LiquidColorPicker>
     </>
     )
     return(
-        <LiquidMenuTab title = "image" defaultState = {settings.imageMenu.open} children = {children}></LiquidMenuTab>
+        <LiquidMenuTab title = "image" background = {'#ff0088ff'} defaultState = {settings.imageMenu.open} children = {[nonspecificChildren,specificChildren]}></LiquidMenuTab>
     )
 }
 export default LiquidImageSettings;

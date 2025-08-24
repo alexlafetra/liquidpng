@@ -84,17 +84,17 @@ class FlowCanvas{
     }
     getAlignment(){
         switch(this.settings.textAlignment){
-            case "Left":
+            case "left":
                 return this.p5.LEFT;
-            case "Right":
+            case "right":
                 return this.p5.RIGHT;
-            case "Center":
+            case "center":
                 return this.p5.CENTER;
         }
     }
     loadText(t){
 
-        if(t === null || t == ""){
+        if(t === null || t === undefined){
             return;
         }
 
@@ -105,14 +105,14 @@ class FlowCanvas{
         this.p5.textSize(this.settings.fontSize);
         this.p5.textAlign(this.getAlignment(),this.p5.TOP);
 
-        const bounds = this.getTextBounds(t);
-
-        this.settings.srcImage = this.p5.createFramebuffer({ width: bounds.width, height: bounds.height, textureFiltering: this.p5.NEAREST, format: this.settings.clampNoise?this.p5.UNSIGNED_BYTE:this.p5.FLOAT});
-
+        if(this.settings.updateTextBoundingBox){
+            const bounds = this.getTextBounds(t);
+            this.settings.srcImage = this.p5.createFramebuffer({ width: bounds.width, height: bounds.height, textureFiltering: this.p5.NEAREST, format: this.settings.clampNoise?this.p5.UNSIGNED_BYTE:this.p5.FLOAT});
+        }
 
         this.settings.srcImage.begin();
         this.p5.clear();
-        this.p5.text(t,this.settings.textAlignment == 'Left'?-bounds.width/2:(this.settings.textAlignment == 'Right'?bounds.width/2:0),-bounds.height/2);
+        this.p5.text(t,this.settings.textAlignment == 'left'?-this.settings.srcImage.width/2:(this.settings.textAlignment == 'right'?this.settings.srcImage.width/2:0),-this.settings.srcImage.height/2);
         this.settings.srcImage.end();
         this.currentText = t;
     }
@@ -150,7 +150,7 @@ class FlowCanvas{
         this.p5.clear();
         this.p5.shader(this.outputShader);
         this.outputShader.setUniform('uTargetImage',this.settings.srcImage);
-        this.outputShader.setUniform('uCoordinateOverflowStyle',(this.settings.imageCoordinateOverflow == 'extend')?0:((this.settings.imageCoordinateOverflow == 'tile')?1:2));
+        this.outputShader.setUniform('uCoordinateOverflowStyle',(this.settings.imageCoordinateOverflow == 'extending')?0:((this.settings.imageCoordinateOverflow == 'tiling')?1:2));
         this.outputShader.setUniform('uInputType',(this.settings.inputType == 'text')?0:1);
         this.outputShader.setUniform('uTextColor',this.settings.fontColor);
         
@@ -278,6 +278,7 @@ class FlowCanvas{
 
             void main(){
                 vPosition = vec2(aPosition.x,1.0 - aPosition.y);
+                // vPosition = vec2(aPosition.x,aPosition.y);
                 gl_Position = vec4(aPosition*2.0-1.0,1.0);
             }
             `,

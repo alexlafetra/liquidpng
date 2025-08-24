@@ -55,14 +55,11 @@ function App() {
     recordedFrame : 0,
     startInHiRes : false,
     keyframes : {
-      easeType : 'linear',
-      editingKeyframe : 0,
       active : false,
       looping : false,
       currentAnimation : 0,
       currentFrame : 0,
       keyframes : [],
-      transitionLength : 30,
       needsToSetCanvasTo : null,
     },
     //set to 2.0 for HD
@@ -73,15 +70,18 @@ function App() {
     imageMenu : {open:true},
     keyframeMenu : {open:true},
     showHelpText : false,
-    imageCoordinateOverflow: 'discard', //options are discard, tile, and extend
+    imageCoordinateOverflow: 'discarding', //options are discard, tile, and extend
     imageLink : './star.png',
     backgroundImageLink : './test_background.MOV',
     backgroundImage : null,
+    backgroundIsVideo:false,
+    playVideoOnKeyframes:true,
     fontLink : 'times.ttf',
     fontOptions : ['times.ttf','arial.ttf','CedarvilleCursive.ttf','chopin.ttf','SFMono.otf','NotoSerifTC.ttf'],
     // options are left, right, and centered
-    textAlignment : 'Left',
+    textAlignment : 'left',
     inputType : 'text', //options are text or image
+    updateTextBoundingBox:true,//true if new text being entered triggers the BB to be resized, false if it doesn't change size
     needsToReloadImage : false,
 
     mainCanvas : null,
@@ -233,12 +233,11 @@ function App() {
     return t < 0.5 ? 4 * t * t * t : ( t - 1 ) * ( 2 * t - 2 ) * ( 2 * t - 2 ) + 1;
   }
 
-
   function setSettingsFromKeyframe(lerpPercent,active,next,p){
     const currentAnimation = settings.keyframes.keyframes[active];
     const nextAnimation = settings.keyframes.keyframes[next];
     const newFontSize = p.lerp(currentAnimation.fontSize,nextAnimation.fontSize,lerpPercent);
-    switch(settings.keyframes.easeType){
+    switch(currentAnimation.easeType){
       case 'linear':
         break;
       case 'sine':
@@ -297,17 +296,21 @@ function App() {
       settings.keyframes.needsToSetCanvasTo = null;
     }
     else if(settings.keyframes.active){
+      //bounds checking
       if((settings.keyframes.keyframes[settings.keyframes.currentAnimation] === undefined)||(settings.keyframes.keyframes[settings.keyframes.currentAnimation+1] === undefined)){
         settings.keyframes.active = false;
         settings.keyframes.currentAnimation = 0;
+        //stop vid if needed
+        if(settings.backgroundIsVideo){
+        }
         return;
       }
-      const lerpPercent = settings.keyframes.currentFrame/settings.keyframes.transitionLength;
+      const lerpPercent = settings.keyframes.currentFrame/settings.keyframes.keyframes[settings.keyframes.currentAnimation].transitionLength;
       setSettingsFromKeyframe(lerpPercent,settings.keyframes.currentAnimation,settings.keyframes.currentAnimation+1,p);
       
       //update frame (within animation)
       settings.keyframes.currentFrame++;
-      if(settings.keyframes.currentFrame>settings.keyframes.transitionLength){
+      if(settings.keyframes.currentFrame>settings.keyframes.keyframes[settings.keyframes.currentAnimation].transitionLength){
         settings.keyframes.currentFrame = 0;
         //jump to next animation
         if(!(settings.keyframes.keyframes[settings.keyframes.currentAnimation+2] === undefined)){
@@ -316,6 +319,10 @@ function App() {
         //if ur looping
         else if(settings.keyframes.looping){
           settings.keyframes.currentAnimation = 0;
+            //reset vid if needed
+          if(settings.backgroundIsVideo){
+            settings.backgroundImage.currentTime = 0;
+          }
           if(settings.recording){
             settings.recordingFinished = true;
           }
@@ -327,6 +334,16 @@ function App() {
           if(settings.recording){
             settings.recordingFinished = true;
           }
+          //stop vid if needed
+          if(settings.backgroundIsVideo){
+            settings.backgroundImage.stop();
+          }
+        }
+      }
+      else{
+        if(settings.backgroundIsVideo){
+          const frameTime = 1/25;//25fps?
+          settings.backgroundImage.currentTime = Math.min(settings.backgroundImage.duration, settings.backgroundImage.currentTime + frameTime*settings.keyframes.currentFrame);
         }
       }
     }
@@ -428,50 +445,51 @@ function App() {
 
     // Called automatically after p5.js `setup()`
     // to set up the rendering pipeline(s)
-    // p.setupAsciify = () => {
-    //   // Fetch relevant objects from the library
-    //   asciifier = p5asciify.asciifier();
-    //   brightnessRenderer = asciifier
-    //     .renderers() // get the renderer manager
-    //     .get("brightness"); // get the "brightness" renderer
+    p.setupAsciify = () => {
+      // Fetch relevant objects from the library
+      asciifier = p5asciify.asciifier();
+      brightnessRenderer = asciifier
+        .renderers() // get the renderer manager
+        .get("brightness"); // get the "brightness" renderer
 
-    //   edgeRenderer = asciifier
-    //     .renderers() // get the renderer manager
-    //     .get("edge"); // get the "edge" renderer
+      edgeRenderer = asciifier
+        .renderers() // get the renderer manager
+        .get("edge"); // get the "edge" renderer
 
-    //   // Update the font size of the rendering pipeline
-    //   asciifier.fontSize(8);
+      // Update the font size of the rendering pipeline
+      asciifier.fontSize(6);
 
-    //   // Update properties of the brightness renderer
-    //   brightnessRenderer.update({
-    //     enabled: true, // redundant, but for clarity
-    //     characters: " .:-=+*%@#",
-    //     characterColor: "#000000",
-    //     characterColorMode: "fixed", // or "fixed"
-    //     backgroundColor: "#ffffff",
-    //     backgroundColorMode: "fixed", // or "sampled"
-    //     invert: false, // swap char and bg colors
-    //     rotation: 0, // rotation angle in degrees
-    //     flipVertically: false, // flip chars vertically
-    //     flipHorizontally: false, // flip chars horizontally
-    //   });
+      // Update properties of the brightness renderer
+      brightnessRenderer.update({
+        enabled: true, // redundant, but for clarity
+        // characters: " .:-=+*%@#",
+        characters: " ",
+        characterColor: "#000000",
+        characterColorMode: "fixed", // or "fixed"
+        backgroundColor: "#ffffff",
+        backgroundColorMode: "fixed", // or "sampled"
+        invert: false, // swap char and bg colors
+        rotation: 0, // rotation angle in degrees
+        flipVertically: false, // flip chars vertically
+        flipHorizontally: false, // flip chars horizontally
+      });
 
-    //   // Update properties of the edge renderer
-    //   edgeRenderer.update({
-    //     enabled: true, // redundant, but for clarity
-    //     characters: "-/|\\-/|\\", // should be 8 characters long
-    //     characterColor: "#000000",
-    //     characterColorMode: "fixed", // or "sampled"
-    //     backgroundColor: "#ffffff",
-    //     backgroundColorMode: "fixed", // or "sampled"
-    //     invert: false, // swap char and bg colors
-    //     rotation: 0, // rotation angle in degrees
-    //     flipVertically: false, // flip chars vertically
-    //     flipHorizontally: false, // flip chars horizontally
-    //     sampleThreshhold: 16, // sample threshold for edge detection
-    //     sobelThreshold: 0.5, // sobel threshold for edge detection
-    //   });
-    // }
+      // Update properties of the edge renderer
+      edgeRenderer.update({
+        enabled: true, // redundant, but for clarity
+        characters: "-/|\\-/|\\", // should be 8 characters long
+        characterColor: "#000000",
+        characterColorMode: "fixed", // or "sampled"
+        backgroundColor: "#ffffff",
+        backgroundColorMode: "fixed", // or "sampled"
+        invert: false, // swap char and bg colors
+        rotation: 0, // rotation angle in degrees
+        flipVertically: false, // flip chars vertically
+        flipHorizontally: false, // flip chars horizontally
+        sampleThreshhold: 16, // sample threshold for edge detection
+        sobelThreshold: 0.5, // sobel threshold for edge detection
+      });
+    }
 
     return () => {
         p.remove();

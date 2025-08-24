@@ -9,7 +9,9 @@ function LiquidUIContainer({liquidPNGInstance,settings}){
     const [inputType,setInputType] = useState(settings.inputType);
     const [hidden,setHidden] = useState(settings.hideUI);
     const [showHelpText,setShowHelpText] = useState(settings.showHelpText);
-
+    const UIStyle = {
+      backgroundColor : 'transparent'
+    };
     return(
       <>
       {settings.showHelpText &&
@@ -29,7 +31,7 @@ function LiquidUIContainer({liquidPNGInstance,settings}){
           </div>
         </div>
       }
-      <div className = "ui_container">
+      <div className = "ui_container" style = {UIStyle}>
         <span className = "title">liquid.png</span>
         <LiquidCheckbox title = {"ui"} helpText = '<-- show/hide the user interface' showHelpText = {settings.showHelpText} defaultState={!settings.hideUI} callback = {(val) => {setHidden(!hidden)}}></LiquidCheckbox>
         <span className = "liquid_button" onClick ={(e) => {liquidPNGInstance.saveImage();}}>[save]</span>

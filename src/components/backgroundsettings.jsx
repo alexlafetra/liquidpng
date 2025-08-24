@@ -8,6 +8,7 @@ import LiquidFilePicker from './filepicker.jsx'
 
 function LiquidBackgroundSettings({settings}){
     const [backgroundStyle,setBackgroundStyle] = useState(settings.backgroundStyle);
+    const [fileName,setFilename] = useState('[upload an image]');
     //used for updating the color slider
     function hexToRgb(hex) {
         const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -17,10 +18,10 @@ function LiquidBackgroundSettings({settings}){
         }
         return null;
     }
-    const options = ["transparent","color","image/video","grid","blur"];
+    const options = ["transparency","color","image/video","grid","blur"];
     const callback = (val) => {
         switch(val){
-            case "transparent":
+            case "transparency":
                 settings.backgroundStyle = 0;
                 break;
             case "color":
@@ -47,7 +48,11 @@ function LiquidBackgroundSettings({settings}){
         const file = e.target.files[0];
         const isVideo = file.type.startsWith('video/');
         const isImage = file.type.startsWith('image/');
-
+        let fName = e.target.value.split('C:\\fakepath\\')[1];
+        if(fName.length>10){
+            fName = fName.slice(0,10)+'...'+fName.slice(-4);
+        }
+        setFilename('['+fName+']');
         // console.log(e);
         //video
         if(isVideo){
@@ -55,11 +60,11 @@ function LiquidBackgroundSettings({settings}){
             const vid = settings.p5Inst.createVideo([videoURL]);
             vid.hide();
             vid.volume(0);
-            vid.loop(); // or .play()
             vid.elt.onloadedmetadata = () => {
                 settings.backgroundImage = vid;
                 settings.backgroundStyle = 2;
-                URL.revokeObjectURL(videoURL);
+                settings.backgroundIsVideo = true;
+                // URL.revokeObjectURL(videoURL);
             }
         }
         //image
@@ -72,6 +77,7 @@ function LiquidBackgroundSettings({settings}){
                 //using p5's loadImage()
                 settings.backgroundImage = await settings.p5Inst.loadImage(reader.result);
                 settings.backgroundStyle = 2;
+                settings.backgroundIsVideo = false;
             }
             //read in the file
             reader.readAsDataURL(file);
@@ -84,7 +90,7 @@ function LiquidBackgroundSettings({settings}){
         case 0:
             children = (
                 <>
-                <LiquidDropdown showHelpText = {settings.showHelpText} helpText = {'<-- change background style'} callback = {callback} options = {options} defaultValue = {"clear"}></LiquidDropdown>
+                <LiquidDropdown label = {"background is a "} callback = {callback} options = {options}  value = {options[backgroundStyle]} ></LiquidDropdown>
                 </>
             );
             break;
@@ -92,7 +98,7 @@ function LiquidBackgroundSettings({settings}){
         case 1:
             children = (
                 <>
-                <LiquidDropdown showHelpText = {settings.showHelpText} helpText = {'<-- change background style'} callback = {callback} options = {options} defaultValue = {"clear"}></LiquidDropdown>
+                <LiquidDropdown label = {"background is a "} callback = {callback} options = {options}  value = {options[backgroundStyle]} ></LiquidDropdown>
                 <LiquidColorPicker showHelpText = {settings.showHelpText} helpText = {'<-- change background color'}callback = {(val) => {val = hexToRgb(val); settings.backgroundColor = [val.r/255.0,val.g/255.0,val.b/255.0];}} defaultValue = {'#0000ff'}></LiquidColorPicker>
                 </>
             );
@@ -101,9 +107,9 @@ function LiquidBackgroundSettings({settings}){
         case 2:
             children = (
                 <>
-                <LiquidDropdown showHelpText = {settings.showHelpText} helpText = {'<-- change background style'} callback = {callback} options = {options} defaultValue = {"clear"}></LiquidDropdown>
-                <LiquidFilePicker callback = {openFileURL} helpText = "<-- select background image" showHelpText = {settings.showHelpText}></LiquidFilePicker>
-                <LiquidCheckbox></LiquidCheckbox>
+                <LiquidDropdown label = {"background is an "} callback = {callback} options = {options}  value = {options[backgroundStyle]} ></LiquidDropdown>
+                <LiquidFilePicker callback = {openFileURL} value = {fileName}></LiquidFilePicker>
+                <LiquidCheckbox title = {'play with keyframes'} setTitleInsideBrackets = {false} callback = {(val) => {settings.backgroundImage}}></LiquidCheckbox>
                 </>
             )
             break;
@@ -111,12 +117,12 @@ function LiquidBackgroundSettings({settings}){
         case 3:
             children = (
                 <>
-                <LiquidDropdown showHelpText = {settings.showHelpText} helpText = {'<-- change background style'} callback = {callback} options = {options} defaultValue = {"clear"}></LiquidDropdown>
-                <LiquidColorPicker showHelpText = {settings.showHelpText} helpText = {'<-- change grid line color'} callback = {(val) => {val = hexToRgb(val); settings.gridColor = [val.r/255.0,val.g/255.0,val.b/255.0];}} defaultValue = {'#ff0000'} label = {"line"}></LiquidColorPicker>
-                <LiquidColorPicker showHelpText = {settings.showHelpText} helpText = {'<-- change background color'} callback = {(val) => {val = hexToRgb(val); settings.backgroundColor = [val.r/255.0,val.g/255.0,val.b/255.0];}} defaultValue = {'#0000ff'} label = {"background"}></LiquidColorPicker>
+                <LiquidDropdown label = {"background is a "} callback = {callback} options = {options}  value = {options[backgroundStyle]} ></LiquidDropdown>
+                <LiquidColorPicker callback = {(val) => {val = hexToRgb(val); settings.gridColor = [val.r/255.0,val.g/255.0,val.b/255.0];}} defaultValue = {'#ff0000'} label = {"line"}></LiquidColorPicker>
+                <LiquidColorPicker callback = {(val) => {val = hexToRgb(val); settings.backgroundColor = [val.r/255.0,val.g/255.0,val.b/255.0];}} defaultValue = {'#0000ff'} label = {"background"}></LiquidColorPicker>
                 <br></br>
-                <LiquidSlider showHelpText = {settings.showHelpText} helpText = {'<-- change grid line thickness'} callback = {(val) => {settings.gridThickness = val;}} label = {"thickness"} min = {"0.0"} max = {"0.05"} stepsize = {"0.001"} defaultValue = {settings.gridThickness}/>
-                <LiquidSlider showHelpText = {settings.showHelpText} helpText = {'<-- change grid resolution'}callback = {(val) => {settings.gridSize = val;}} label = {"rez"} min = {"0.0"} max = {"100.0"} stepsize = {"1.0"} defaultValue = {settings.gridSize}/>
+                <LiquidSlider callback = {(val) => {settings.gridThickness = val;}} label = {"thickness "} min = {"0.0"} max = {"0.05"} stepsize = {"0.001"} defaultValue = {settings.gridThickness}/>
+                <LiquidSlider callback = {(val) => {settings.gridSize = val;}} label = {"resolution "} min = {"0.0"} max = {"100.0"} stepsize = {"1.0"} defaultValue = {settings.gridSize}/>
                 </>
             );
             break;
@@ -124,18 +130,18 @@ function LiquidBackgroundSettings({settings}){
         case 4:
             children = (
                 <>
-                <LiquidDropdown showHelpText = {settings.showHelpText} helpText = {'<-- change background style'} callback = {callback} options = {options} defaultValue = {"clear"}></LiquidDropdown>
-                <LiquidColorPicker showHelpText = {settings.showHelpText} helpText = {'<-- change grid line color'} callback = {(val) => {val = hexToRgb(val); settings.gridColor = [val.r/255.0,val.g/255.0,val.b/255.0];}} defaultValue = {'#ff0000'} label = {"line"}></LiquidColorPicker>
-                <LiquidColorPicker showHelpText = {settings.showHelpText} helpText = {'<-- change background color'} callback = {(val) => {val = hexToRgb(val); settings.backgroundColor = [val.r/255.0,val.g/255.0,val.b/255.0];}} defaultValue = {'#0000ff'} label = {"background"}></LiquidColorPicker>
+                <LiquidDropdown label = {"background is a "} callback = {callback} options = {options}  value = {options[backgroundStyle]} ></LiquidDropdown>
+                <LiquidColorPicker callback = {(val) => {val = hexToRgb(val); settings.gridColor = [val.r/255.0,val.g/255.0,val.b/255.0];}} defaultValue = {'#ff0000'} label = {"line"}></LiquidColorPicker>
+                <LiquidColorPicker callback = {(val) => {val = hexToRgb(val); settings.backgroundColor = [val.r/255.0,val.g/255.0,val.b/255.0];}} defaultValue = {'#0000ff'} label = {"background"}></LiquidColorPicker>
                 <br></br>
-                <LiquidSlider showHelpText = {settings.showHelpText} helpText = {'<-- change grid color intensity'} callback = {(val) => {settings.blurGridIntensity = val;}} label = {"intensity"} min = {"0.0"} max = {"10.0"} stepsize = {"0.001"} defaultValue = {settings.blurGridIntensity}/>
-                <LiquidSlider showHelpText = {settings.showHelpText} helpText = {'<-- change grid resolution'}callback = {(val) => {settings.gridSize = val;}} label = {"rez"} min = {"0.0"} max = {"100.0"} stepsize = {"1.0"} defaultValue = {settings.gridSize}/>
+                <LiquidSlider callback = {(val) => {settings.blurGridIntensity = val;}} label = {"thickness "} min = {"0.0"} max = {"10.0"} stepsize = {"0.001"} defaultValue = {settings.blurGridIntensity}/>
+                <LiquidSlider callback = {(val) => {settings.gridSize = val;}} label = {"resolution "} min = {"0.0"} max = {"100.0"} stepsize = {"1.0"} defaultValue = {settings.gridSize}/>
                 </>
             );
             break;
     }
     return (
-        <LiquidMenuTab title = "background" defaultState = {settings.backgroundMenu.open} children = {children}></LiquidMenuTab>
+        <LiquidMenuTab title = "background" defaultState = {settings.backgroundMenu.open} background = {'#0000ffff'}children = {children}></LiquidMenuTab>
     )
 }
 export default LiquidBackgroundSettings;

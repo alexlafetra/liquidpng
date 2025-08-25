@@ -9,8 +9,8 @@ function LiquidAnimationSettings({settings,liquidPNGInstance}){
         <LiquidCheckbox title = {'animate'} defaultState={active} callback = {(val) => {settings.animation.active = val;setActive(val);}}></LiquidCheckbox>
         {active && 
             <div className = "flow_slider_container">
-            <LiquidSlider callback = {(val) => {settings.animation.xMotion = parseFloat(val);}} label = {"x"} min = {-10.0} max = {10.0} stepsize = {1} defaultValue = {settings.animation.xMotion}/>
-            <LiquidSlider callback = {(val) => {settings.animation.yMotion = parseFloat(val);}} label = {"y"} min = {-10.0} max = {10.0} stepsize = {1} defaultValue = {settings.animation.yMotion}/>
+            <LiquidSlider callback = {(val) => {settings.animation.xMotion = parseFloat(val);}} label = {"x: "} min = {-10.0} max = {10.0} stepsize = {1} defaultValue = {settings.animation.xMotion}/>
+            <LiquidSlider callback = {(val) => {settings.animation.yMotion = parseFloat(val);}} label = {"y: "} min = {-10.0} max = {10.0} stepsize = {1} defaultValue = {settings.animation.yMotion}/>
             </div>
         }
         </>

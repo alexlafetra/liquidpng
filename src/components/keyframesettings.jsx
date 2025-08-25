@@ -4,6 +4,7 @@ import LiquidMenuTab from './menutab.jsx'
 import LiquidSlider from './slider.jsx'
 import LiquidButton from './button.jsx'
 import LiquidDropdown from './dropdown.jsx'
+import { saveAs } from 'file-saver'
 
 
 function saveKeyframe(settings,index,length,interpType){
@@ -62,6 +63,14 @@ function removeKeyframe(settings,index){
         }
     }
     settings.keyframes.keyframes = temp;
+}
+function saveKeyframesAsJSON(settings){
+    const fileName = 'keyframes.json';
+    // Create a blob of the data
+    const fileToSave = new Blob([JSON.stringify(settings.keyframes.keyframes)], {
+        type: 'application/json'
+    });
+    saveAs(fileToSave, fileName);
 }
 
 function LiquidKeyframeSettings({settings,liquidPNGInstance}){
@@ -139,7 +148,7 @@ function LiquidKeyframeSettings({settings,liquidPNGInstance}){
         (
             <>
             <div style = {buttonHolderStyle}>
-                <LiquidButton title = {'save'} callback = {() => {saveKeyframe(settings,activeKeyframe,transitionLength,interpType);setActiveKeyframe(activeKeyframe);setKeyframeCount(settings.keyframes.keyframes.length);}}></LiquidButton>
+                <LiquidButton title = {'overwrite'} callback = {() => {saveKeyframe(settings,activeKeyframe,transitionLength,interpType);setActiveKeyframe(activeKeyframe);setKeyframeCount(settings.keyframes.keyframes.length);}}></LiquidButton>
                 <LiquidButton title = {'delete'} callback = {() => {removeKeyframe(settings,activeKeyframe);setActiveKeyframe(activeKeyframe>0?(activeKeyframe-1):((settings.keyframes.keyframes.length == 0)?undefined:0));setKeyframeCount(settings.keyframes.keyframes.length);}}></LiquidButton>
                 <LiquidButton title = {'play'} callback = {() => {settings.keyframes.active = !settings.keyframes.active;setPlaying(settings.keyframes.active);if(settings.backgroundIsVideo){settings.keyframes.active?settings.backgroundImage.play():settings.backgroundImage.stop()}}}></LiquidButton>
                 <LiquidCheckbox title = {'loop'} setTitleInsideBrackets = {false} callback = {(val) => {settings.keyframes.looping = val;}}></LiquidCheckbox>
@@ -147,6 +156,7 @@ function LiquidKeyframeSettings({settings,liquidPNGInstance}){
             <LiquidSlider callback = {(val) => {settings.keyframes.keyframes[activeKeyframe].transitionLength = val; setTransitionLength(val);}} label = {"length: "} min = {"1"} max = {"3600"} stepsize = {"1"} currentValue = {transitionLength} defaultValue = {transitionLength}/>
             <LiquidDropdown label = {"easing: "} callback = {(val) => {setInterpType(val);}} options = {['linear','sine','cubic']} value = {interpType}></LiquidDropdown>
             <LiquidButton title = {recording?'stop rendering':'render & save'} callback = {()=>{const state = !settings.recording; settings.keyframes.active = state; settings.recording = state; setPlaying(state); setRecording(state);}}></LiquidButton>
+            <LiquidButton title = {'save as json'} callback = {()=>{saveKeyframesAsJSON(settings)}}></LiquidButton>
             {/* {(settings.recordedFrame != 0 && !settings.recording) &&
                 <LiquidButton title = {'clear render buffer'} callback = {()=>{settings.needToClearRenderBuffer = true;}}></LiquidButton>
             } */}

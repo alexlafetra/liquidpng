@@ -20,6 +20,7 @@
     "@mui/material": "^7.2.0",
     "base-ui": "^0.0.294",
     "base-ui-components": "^4.1.1",
+    "file-saver": "^2.0.5",
     "jszip": "^3.10.1",
     "p5": "^2.0.3",
     "p5.asciify": "^0.10.3",

@@ -42,8 +42,6 @@ function LiquidSlider({label,callback,id,min,max,stepsize,defaultValue,currentVa
     // slider code adapted from: https://www.w3schools.com/howto/howto_js_rangeslider.asp and https://blog.logrocket.com/creating-custom-css-range-slider-javascript-upgrades/
     const sliderContainerStyle = {
         display:'flex',
-        flexGrow:1,
-        // border:'solid 1px black',
     };
     
     const sliderStyle = {
@@ -51,7 +49,7 @@ function LiquidSlider({label,callback,id,min,max,stepsize,defaultValue,currentVa
         appearance: 'none',
         height: '20px',
         width:'100px',
-        backgroundColor:'#000000',
+        backgroundColor:'#dddd00',
         outline: 'none',
         overflow: 'hidden',
         cursor:'pointer',

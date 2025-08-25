@@ -13,7 +13,8 @@ function LiquidImageSettings({parentCallback,settings,liquidPNGInstance}){
     const [imageCoordinateOverflow,setImageCoordinateOverflow] = useState(settings.imageCoordinateOverflow);
     const [fontLink,setFontLink] = useState(settings.fontLink);
     const [textAlignment,setTextAlignment] = useState(settings.textAlignment);
-    
+    const [filename,setFilename] = useState('[upload an image]');
+
     //used for updating the color slider
     function hexToRgb(hex) {
         const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -50,39 +51,57 @@ function LiquidImageSettings({parentCallback,settings,liquidPNGInstance}){
         //make sure there's a file here
         if(e.target.files.length > 0){
 
-            //create a file reader object
-            const reader = new FileReader();
-
-            //attach a callback for when the FR is done opening the img
-            reader.onload = async (e) => {
-                //using p5's loadImage()
-                const newImg = await settings.p5Inst.loadImage(reader.result);
-                settings.image = newImg;
-                liquidPNGInstance.reloadImage();
-            };
-            reader.readAsDataURL(e.target.files[0]);
+            const file = e.target.files[0];
+            const isVideo = file.type.startsWith('video/');
+            const isImage = file.type.startsWith('image/');
+            let fName = e.target.value.split('C:\\fakepath\\')[1];
+            if(fName.length>10){
+                fName = fName.slice(0,10)+'...'+fName.slice(-4);
+            }
+            setFilename('['+fName+']');
+            
+            if(isImage){
+                //create a file reader object
+                const reader = new FileReader();
+                //attach a callback for when the FR is done opening the img
+                reader.onload = async (e) => {
+                    //using p5's loadImage()
+                    const newImg = await settings.p5Inst.loadImage(reader.result);
+                    settings.image = newImg;
+                    liquidPNGInstance.reloadImage();
+                };
+                reader.readAsDataURL(file);
+            }
+            else if(isVideo){
+                const videoURL = URL.createObjectURL(file);
+                const vid = settings.p5Inst.createVideo([videoURL]);
+                vid.hide();
+                vid.volume(0);
+                vid.loop();
+                vid.elt.onloadedmetadata = () => {
+                    settings.image = vid;
+                }
+            }
         }
     }
     const nonspecificChildren = (
         <>
-            <LiquidSlider callback = {(val) => {settings.pixelDensity = parseFloat(val);liquidPNGInstance.reset();}} label = {"canvas resolution "} showHelpText = {settings.showHelpText} helpText = '<-- canvas resolution (high values ==> high memory usage)' min = {"0.01"} max = {"5.0"} stepsize = {"0.01"} defaultValue = {settings.pixelDensity}/>
-            <LiquidDropdown label = "warping " callback = {changeInputCallback} options = {options} value = {inputType} showHelpText = {settings.showHelpText} helpText = "<-- choose between text or image input"></LiquidDropdown>
-            <LiquidSlider callback = {(val) => {settings.imageScale = val}} label = {inputType + " scale: "} min = {"0.01"} max = {"4.0"} stepsize = {"0.01"} defaultValue = {settings.imageScale} showHelpText = {settings.showHelpText} helpText = "<-- shrink/grow image"/>
-            <LiquidDropdown callback = {(val) => {settings.imageCoordinateOverflow = val; setImageCoordinateOverflow(val);}} label = 'handle edges by ' options = {['extending','tiling','discarding']} value = {imageCoordinateOverflow} showHelpText = {settings.showHelpText} helpText = "<-- choose how to handle image coordinate overflow"></LiquidDropdown>
+            <LiquidSlider callback = {(val) => {settings.pixelDensity = parseFloat(val);liquidPNGInstance.reset();}} label = {"canvas resolution "} min = {"0.01"} max = {"5.0"} stepsize = {"0.01"} defaultValue = {settings.pixelDensity}/>
+            <LiquidDropdown label = "warping " callback = {changeInputCallback} options = {options} value = {inputType}  ></LiquidDropdown>
+            <LiquidSlider callback = {(val) => {settings.imageScale = val}} label = {inputType + " scale: "} min = {"0.01"} max = {"4.0"} stepsize = {"0.01"} defaultValue = {settings.imageScale}/>
+            <LiquidDropdown callback = {(val) => {settings.imageCoordinateOverflow = val; setImageCoordinateOverflow(val);}} label = 'handle edges by ' options = {['extending','tiling','discarding']} value = {imageCoordinateOverflow}></LiquidDropdown>
         </>
     );
     const specificChildren = (inputType == 'image')?(
-            <>
-            <LiquidFilePicker callback = {openFileURL} helpText = "<-- select an image to warp" showHelpText = {settings.showHelpText}></LiquidFilePicker>
-            </>
+            <LiquidFilePicker callback = {openFileURL} value = {filename}></LiquidFilePicker>
         ):(
         <>
-            <LiquidTextBox className = "text_input_box" showHelpText = {settings.showHelpText} helpText = "<-- put your text here" placeholderText = {settings.displayText} callback = {(event) => {settings.displayText = event.target.value;liquidPNGInstance.loadText(settings.displayText);}}></LiquidTextBox>
-            <LiquidCheckbox title = {'lock bounding box'} showHelpText = {settings.showHelpText} helpText = {'<-- stop new text from updating current bnd bx'} defaultState={!settings.updateTextBoundingBox} callback = {(val) => {settings.updateTextBoundingBox = !val;if(settings.updateTextBoundingBox){liquidPNGInstance.loadText(settings.displayText);}}}></LiquidCheckbox>
-            <LiquidDropdown label = 'font: ' callback = {async (val) => {settings.fontLink = val; settings.font = await settings.p5Inst.loadFont('./fonts/'+settings.fontLink);liquidPNGInstance.reloadText();setFontLink(val);}} showHelpText = {settings.showHelpText} helpText = "<-- select font" options = {settings.fontOptions} value = {fontLink}></LiquidDropdown>
-            <LiquidSlider callback = {(val) => {settings.fontSize = parseInt(val); liquidPNGInstance.loadText(settings.displayText);}} label = {"font resolution: "} min = {"1"} max = {"400"} stepsize = {"1"} defaultValue = {settings.fontSize} showHelpText = {settings.showHelpText} helpText = "<-- change font size/resolution"/>
-            <LiquidDropdown label = 'align to the ' callback = {changeTextAlignCallback} options = {alignOptions} value = {textAlignment} showHelpText = {settings.showHelpText} helpText = "<-- set text alignment"></LiquidDropdown>
-            <LiquidColorPicker callback = {(val) => {val = hexToRgb(val); settings.fontColor = [val.r/255.0,val.g/255.0,val.b/255.0];}} defaultValue = {'#ff0000'} label = {"text color"} showHelpText = {settings.showHelpText} helpText = "<-- change text color"></LiquidColorPicker>
+            <LiquidTextBox className = "text_input_box" placeholderText = {settings.displayText} callback = {(event) => {settings.displayText = event.target.value;liquidPNGInstance.loadText(settings.displayText);}}></LiquidTextBox>
+            <LiquidCheckbox title = {'lock bounding box'} defaultState={!settings.updateTextBoundingBox} callback = {(val) => {settings.updateTextBoundingBox = !val;if(settings.updateTextBoundingBox){liquidPNGInstance.loadText(settings.displayText);}}}></LiquidCheckbox>
+            <LiquidDropdown label = 'font: ' callback = {async (val) => {settings.fontLink = val; settings.font = await settings.p5Inst.loadFont('./fonts/'+settings.fontLink);liquidPNGInstance.reloadText();setFontLink(val);}} options = {settings.fontOptions} value = {fontLink}></LiquidDropdown>
+            <LiquidSlider callback = {(val) => {settings.fontSize = parseInt(val); liquidPNGInstance.loadText(settings.displayText);}} label = {"font resolution: "} min = {"1"} max = {"400"} stepsize = {"1"} defaultValue = {settings.fontSize}/>
+            <LiquidDropdown label = 'align to the ' callback = {changeTextAlignCallback} options = {alignOptions} value = {textAlignment}></LiquidDropdown>
+            <LiquidColorPicker callback = {(val) => {val = hexToRgb(val); settings.fontColor = [val.r/255.0,val.g/255.0,val.b/255.0];}} defaultValue = {'#ff0000'} label = {"text color"}></LiquidColorPicker>
     </>
     )
     return(

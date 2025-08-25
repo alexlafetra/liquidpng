@@ -99,7 +99,7 @@ function LiquidBackgroundSettings({settings}){
             children = (
                 <>
                 <LiquidDropdown label = {"background is a "} callback = {callback} options = {options}  value = {options[backgroundStyle]} ></LiquidDropdown>
-                <LiquidColorPicker showHelpText = {settings.showHelpText} helpText = {'<-- change background color'}callback = {(val) => {val = hexToRgb(val); settings.backgroundColor = [val.r/255.0,val.g/255.0,val.b/255.0];}} defaultValue = {'#0000ff'}></LiquidColorPicker>
+                <LiquidColorPicker callback = {(val) => {val = hexToRgb(val); settings.backgroundColor = [val.r/255.0,val.g/255.0,val.b/255.0];}} defaultValue = {'#0000ff'}></LiquidColorPicker>
                 </>
             );
             break;

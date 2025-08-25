@@ -29,7 +29,7 @@ class FlowCanvas{
         this.p5 = this.settings.p5Inst;
         this.mainCanvas = this.settings.mainCanvas;
         //holds the flow field
-        this.flowFieldCanvas = this.p5.createFramebuffer({ width: this.settings.width, height: this.settings.height, textureFiltering: this.p5.NEAREST, format: this.settings.clampNoise?this.p5.UNSIGNED_BYTE:this.p5.FLOAT});
+        this.flowFieldCanvas = this.p5.createFramebuffer({ width: this.settings.canvasWidth, height: this.settings.canvasWidth, textureFiltering: this.p5.NEAREST, format: this.settings.clampNoise?this.p5.UNSIGNED_BYTE:this.p5.FLOAT});
         this.flowFieldShader = this.createFlowFieldShader(this.p5);
         this.outputShader = this.createOutputShader();
         if(this.settings.inputType == 'text'){
@@ -129,8 +129,8 @@ class FlowCanvas{
         this.flowFieldShader.setUniform('uMediumFrequencyNoiseScale',this.settings.mediumFNoise.scale/this.settings.globalScale);
         this.flowFieldShader.setUniform('uPerlinNoiseAmplitude',this.settings.perlinNoise.active?this.settings.perlinNoise.amplitude:0.0);
         this.flowFieldShader.setUniform('uPerlinNoiseScale',this.settings.perlinNoise.scale/this.settings.globalScale);
-        this.flowFieldShader.setUniform('uViewOffset',[this.settings.viewWindow.offset.x/this.settings.width,this.settings.viewWindow.offset.y/this.settings.height]);
-        this.flowFieldShader.setUniform('uNoiseOffset',[this.settings.noiseWindow.offset.x/this.settings.width,this.settings.noiseWindow.offset.y/this.settings.height]);
+        this.flowFieldShader.setUniform('uViewOffset',[this.settings.viewWindow.offset.x/this.settings.canvasWidth,this.settings.viewWindow.offset.y/this.settings.canvasHeight]);
+        this.flowFieldShader.setUniform('uNoiseOffset',[this.settings.noiseWindow.offset.x/this.settings.canvasWidth,this.settings.noiseWindow.offset.y/this.settings.canvasHeight]);
         this.p5.rect(-this.flowFieldCanvas.width / 2, -this.flowFieldCanvas.height / 2, this.flowFieldCanvas.width, this.flowFieldCanvas.height);
         this.flowFieldCanvas.end();
     }
@@ -169,7 +169,7 @@ class FlowCanvas{
         this.outputShader.setUniform('uGridColor',this.settings.gridColor);
         this.outputShader.setUniform('uGridThickness',this.settings.gridThickness);
         this.outputShader.setUniform('uBlurGridIntensity',this.settings.blurGridIntensity);
-        this.outputShader.setUniform('uViewOffset',[this.settings.viewWindow.offset.x/this.settings.width,this.settings.viewWindow.offset.y/this.settings.height]);
+        this.outputShader.setUniform('uViewOffset',[this.settings.viewWindow.offset.x/this.settings.canvasWidth,this.settings.viewWindow.offset.y/this.settings.canvasHeight]);
         this.p5.quad(1,1,-1,1,-1,-1,1,-1);
         // this.p5.quad(1,1,1,-1,-1,-1,-1,1);
         this.p5.resetShader();

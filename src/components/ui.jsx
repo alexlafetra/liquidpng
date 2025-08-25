@@ -8,41 +8,41 @@ import LiquidKeyframeSettings from './keyframesettings.jsx'
 function LiquidUIContainer({liquidPNGInstance,settings}){
     const [inputType,setInputType] = useState(settings.inputType);
     const [hidden,setHidden] = useState(settings.hideUI);
-    const [showHelpText,setShowHelpText] = useState(settings.showHelpText);
+    const [showAbout,setShowAbout] = useState(false);
     const UIStyle = {
       backgroundColor : 'transparent'
     };
     return(
       <>
-      {settings.showHelpText &&
-        <div className = "description_container">
-          <div className = "description_text">
-          Code for distorting visual data and typography<br></br>
-          using digital noise algorithms<br></br>
-          Built by <a href = "https://www.instagram.com/alexlafetra/">alex lafetra</a><br></br>
-          </div>
-          <img src = "leaf.png" className = "example_image"></img>
-          <div className = "description_text">
-          <br></br>
-          click & drag to change the image distortion<br></br>
-          shift-click & drag to change the image location
-          <br></br>
-          <a href = "https://github.com/alexlafetra/liquidpng">github/contribute</a>
-          </div>
-        </div>
-      }
       <div className = "ui_container" style = {UIStyle}>
+        {!hidden &&
         <span className = "title">liquid.png</span>
-        <LiquidCheckbox title = {"ui"} helpText = '<-- show/hide the user interface' showHelpText = {settings.showHelpText} defaultState={!settings.hideUI} callback = {(val) => {setHidden(!hidden)}}></LiquidCheckbox>
-        <span className = "liquid_button" onClick ={(e) => {liquidPNGInstance.saveImage();}}>[save]</span>
-        <LiquidCheckbox title = {'help'} setTitleInsideBrackets = {true} helpText = '<-- show/hide info' showHelpText = {settings.showHelpText} defaultState={settings.showHelpText} callback = {(e) => {settings.showHelpText = !settings.showHelpText;setShowHelpText(settings.showHelpText);}}></LiquidCheckbox>
+        }
+        <LiquidCheckbox title = {"ui"}  defaultState={!settings.hideUI} callback = {(val) => {setHidden(!hidden)}}></LiquidCheckbox>
         {!hidden &&
           <>
-          <br></br>
+          <LiquidCheckbox title = {'about'} setTitleInsideBrackets = {true}  defaultState = {false} callback = {(e) => {setShowAbout(e);}}></LiquidCheckbox>
+          {showAbout &&
+            <div className = "description_container">
+              <div className = "description_text">
+              This is a small tool for distorting visual data and typography using digital noise algorithms
+              born out of a love for experimental typography, warped graphics, and a belief that data can be tangible, corruptible, and liquid. 
+              {/* <br></br>
+              <br></br>
+              The current technological paradigm holds that data is intangible, inorganic, and static. And yet,
+              living our lives through and with data we know that digital data can be liquid, corruptible, and weird. */}
+              <br></br>
+              <br></br>
+              Created by <a href = "https://www.instagram.com/alexlafetra/">alex lafetra</a><br></br>
+              <a href = "https://github.com/alexlafetra/liquidpng">github/contribute</a>
+              </div>
+              <img src = "leaf.png" className = "example_image"></img>
+            </div>
+          }
           <LiquidImageSettings parentCallback = {(newInputType) => {setInputType(newInputType)}} settings = {settings} liquidPNGInstance={liquidPNGInstance}></LiquidImageSettings>
-          {/* <LiquidSlider showHelpText = {settings.showHelpText} helpText = {'<-- scale the whole scene'} callback = {(val) => {settings.globalScale = parseFloat(val);}} label = {"global scale"} min = {-10.0} max = {10.0} stepsize = {0.01} defaultValue = {settings.globalScale}/> */}
-          <LiquidBackgroundSettings settings = {settings}></LiquidBackgroundSettings>
           <LiquidDistortionSettings settings = {settings} liquidPNGInstance = {liquidPNGInstance}></LiquidDistortionSettings>
+          {/* <LiquidSlider callback = {(val) => {settings.globalScale = parseFloat(val);}} label = {"global scale"} min = {-10.0} max = {10.0} stepsize = {0.01} defaultValue = {settings.globalScale}/> */}
+          <LiquidBackgroundSettings settings = {settings}></LiquidBackgroundSettings>
           <LiquidKeyframeSettings settings = {settings} liquidPNGInstance={liquidPNGInstance}></LiquidKeyframeSettings>
           </>
         }

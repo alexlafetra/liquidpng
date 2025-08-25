@@ -45,9 +45,9 @@ input{
 }
 /* div holding description text */
 .description_container{
-    position:absolute;
-    right: 10px;
-    width:fit-content;
+    /* position:absolute; */
+    /* right: 10px; */
+    width:40%;
     max-width:500px;
 }
 /* styling description text */
@@ -75,32 +75,18 @@ input{
     display: flex;
     flex-direction: column;
     left:0;
+    top:0;
     height:100%;
     overflow-y: scroll;
     overflow-x: hidden;
     padding-left:20px;
-    backface-visibility: visible;
-    -webkit-backface-visibility: visible;
+    /* backface-visibility: visible; */
+    /* -webkit-backface-visibility: visible; */
     width:fit-content;
 }
 /* hiding the scrollbar */
 .ui_container::-webkit-scrollbar {
     display: none;
-}
-/* box that holds helptext w/ the component */
-.liquid_component_with_helpText{
-    display:flex;
-    flex-direction: row;
-    align-items: center;
-}
-.liquid_help_text{
-    background-color: transparent;
-    color:#ffffff;
-    /* font-family:monospace; */
-    font-family:'Times New Roman', Times, serif;
-    mix-blend-mode: difference;
-    padding-left:20px;
-    align-items: center;
 }
 .liquid_ui_component{
     margin-top:3px;
@@ -160,10 +146,14 @@ canvas{
 }
 
 .flow_slider_container{
-    margin-left:20px;
+    /* margin-left:20px; */
     display:block;
     flex-direction: column;
     float:none;
+    padding:10px;
+    border-left:solid 4px #ffffff;
+    border-radius:10px;
+    mix-blend-mode: difference;
 }
 
 .liquid_file_input{

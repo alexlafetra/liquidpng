@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-function LiquidSlider({showHelpText,helpText,label,callback,id,min,max,stepsize,defaultValue,currentValue}){
+function LiquidSlider({label,callback,id,min,max,stepsize,defaultValue,currentValue}){
 
     const [value,setValue] = useState(defaultValue);
     if(value != currentValue && currentValue != undefined){
@@ -50,7 +50,8 @@ function LiquidSlider({showHelpText,helpText,label,callback,id,min,max,stepsize,
         WebkitAppearance: 'none',  /* Override default CSS styles */
         appearance: 'none',
         height: '20px',
-        width:'100%',
+        // width:'100%',
+        // maxWidth:'200px',
         backgroundColor:'#0000ff',
         outline: 'none',
         overflow: 'hidden',

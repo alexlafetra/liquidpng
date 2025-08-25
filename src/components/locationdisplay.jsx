@@ -21,8 +21,8 @@ function LiquidLocationDisplay({liquidPNGInstance,settings}){
         position : 'relative',
         left : settings.viewWindow.offset.x,
         top : settings.viewWindow.offset.y,
-        width : settings.srcImage.width / settings.width * 100 * settings.imageScale,
-        height : settings.srcImage.height / settings.height * 100 * settings.imageScale,
+        width : settings.srcImage.width / settings.canvasWidth * 100 * settings.imageScale,
+        height : settings.srcImage.height / settings.canvasHeight * 100 * settings.imageScale,
     };
     return(
         <div style =  {outerBoxStyle}>

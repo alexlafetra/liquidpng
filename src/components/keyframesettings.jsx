@@ -3,8 +3,6 @@ import LiquidCheckbox from './checkbox.jsx'
 import LiquidMenuTab from './menutab.jsx'
 import LiquidSlider from './slider.jsx'
 import LiquidButton from './button.jsx'
-import LiquidFlowSettings from './flowsettings.jsx'
-import LiquidAnimationSettings from './animationsettings.jsx'
 import LiquidDropdown from './dropdown.jsx'
 
 
@@ -67,21 +65,20 @@ function removeKeyframe(settings,index){
 }
 
 function LiquidKeyframeSettings({settings,liquidPNGInstance}){
-    const [activeKeyframe,setActiveKeyframe] = useState(0);
-    const [fullKeyframes,setFullKeyframes] = useState({A:false,B:true});
+    const [activeKeyframe,setActiveKeyframe] = useState(undefined);
     const [playing,setPlaying] = useState(settings.keyframes.active);
+    const [recording,setRecording] = useState(settings.recording);
     const [transitionLength,setTransitionLength] = useState(60);
     const [interpType,setInterpType] = useState('linear');
+    const [keyframeCount,setKeyframeCount] = useState(settings.keyframes.keyframes.length);
 
     const keyframeDisplayStyle_full = {
         width: 30,
         height:30,
-        // backgroundColor : '#ffddff',
         borderStyle:'dashed',
         borderColor:'#000000',
     };
     const keyframeDisplayStyle_focused_full = {
-        // backgroundColor : '#ff77ff',
         borderStyle:'solid',
         borderColor:'#ff0000',
         animationName: 'example',
@@ -91,6 +88,7 @@ function LiquidKeyframeSettings({settings,liquidPNGInstance}){
     const new_keyframe_displayStyle = {
         width: 30,
         height:30,
+        // marginTop:(keyframeCount == 0)?'10px':'0px',
         backgroundColor : 'transparent',
         borderColor:'#ffffff',
         borderStyle:'dashed',
@@ -127,10 +125,11 @@ function LiquidKeyframeSettings({settings,liquidPNGInstance}){
     for(let kf = 0; kf<settings.keyframes.keyframes.length; kf++){
         keyframes.push(<div className = {"keyframe_display"} style = {getDisplayStyle(kf,activeKeyframe)} onClick = {(e) => {settings.keyframes.needsToSetCanvasTo = kf; setActiveKeyframe(kf); setInterpType(settings.keyframes.keyframes[kf].easeType); setTransitionLength(settings.keyframes.keyframes[kf].transitionLength);}}></div>);
     }
-    keyframes.push(<div className = "new_keyframe_button" style = {new_keyframe_displayStyle} onClick = {(e) => {saveKeyframe(settings,settings.keyframes.keyframes.length,transitionLength,interpType);setFullKeyframes({A:(settings.keyframes.keyframes.length>0),B:(settings.keyframes.keyframes.length>1)})}}>+</div>)
+    keyframes.push(<div className = "new_keyframe_button" style = {new_keyframe_displayStyle} onClick = {(e) => {saveKeyframe(settings,settings.keyframes.keyframes.length,transitionLength,interpType);setActiveKeyframe(settings.keyframes.keyframes.length-1);setKeyframeCount(settings.keyframes.keyframes.length);}}>+</div>)
     let children = [(
         <>
-        <div className = "keyframe_display_container" style ={{display:'flex',marginTop:'10px',gap:'3px'}}>
+        <div style = {{color:'#ffffff',fontWeight:'bold',mixBlendMode:'difference'}}>{(keyframeCount == 0)?'Add a keyframe':('Frame '+(activeKeyframe+1))}</div>
+        <div className = "keyframe_display_container" style ={{display:'flex',gap:'3px'}}>
             {keyframes}
         </div>
         </>
@@ -140,14 +139,17 @@ function LiquidKeyframeSettings({settings,liquidPNGInstance}){
         (
             <>
             <div style = {buttonHolderStyle}>
-                <LiquidButton title = {'save'} callback = {() => {saveKeyframe(settings,activeKeyframe,transitionLength,interpType);setFullKeyframes({A:(settings.keyframes.keyframes.length>0),B:(settings.keyframes.keyframes.length>1)});setActiveKeyframe(activeKeyframe)}}></LiquidButton>
-                <LiquidButton title = {'delete'} callback = {() => {removeKeyframe(settings,activeKeyframe);setFullKeyframes({A:(settings.keyframes.keyframes.length>0),B:(settings.keyframes.keyframes.length>1)});if(activeKeyframe>=settings.keyframes.keyframes.length && activeKeyframe > 0){setActiveKeyframe(settings.keyframes.keyframes.length-1);}}}></LiquidButton>
+                <LiquidButton title = {'save'} callback = {() => {saveKeyframe(settings,activeKeyframe,transitionLength,interpType);setActiveKeyframe(activeKeyframe);setKeyframeCount(settings.keyframes.keyframes.length);}}></LiquidButton>
+                <LiquidButton title = {'delete'} callback = {() => {removeKeyframe(settings,activeKeyframe);setActiveKeyframe(activeKeyframe>0?(activeKeyframe-1):((settings.keyframes.keyframes.length == 0)?undefined:0));setKeyframeCount(settings.keyframes.keyframes.length);}}></LiquidButton>
                 <LiquidButton title = {'play'} callback = {() => {settings.keyframes.active = !settings.keyframes.active;setPlaying(settings.keyframes.active);if(settings.backgroundIsVideo){settings.keyframes.active?settings.backgroundImage.play():settings.backgroundImage.stop()}}}></LiquidButton>
                 <LiquidCheckbox title = {'loop'} setTitleInsideBrackets = {false} callback = {(val) => {settings.keyframes.looping = val;}}></LiquidCheckbox>
             </div>
             <LiquidSlider callback = {(val) => {settings.keyframes.keyframes[activeKeyframe].transitionLength = val; setTransitionLength(val);}} label = {"length: "} min = {"1"} max = {"3600"} stepsize = {"1"} currentValue = {transitionLength} defaultValue = {transitionLength}/>
             <LiquidDropdown label = {"easing: "} callback = {(val) => {setInterpType(val);}} options = {['linear','sine','cubic']} value = {interpType}></LiquidDropdown>
-            <LiquidButton title = {'render & save'} callback = {()=>{settings.keyframes.active = true; settings.recording = true; setPlaying(true);}}></LiquidButton>
+            <LiquidButton title = {recording?'stop rendering':'render & save'} callback = {()=>{const state = !settings.recording; settings.keyframes.active = state; settings.recording = state; setPlaying(state); setRecording(state);}}></LiquidButton>
+            {/* {(settings.recordedFrame != 0 && !settings.recording) &&
+                <LiquidButton title = {'clear render buffer'} callback = {()=>{settings.needToClearRenderBuffer = true;}}></LiquidButton>
+            } */}
             </>
         );
     }

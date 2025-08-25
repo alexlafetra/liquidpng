@@ -85,27 +85,27 @@ function LiquidImageSettings({parentCallback,settings,liquidPNGInstance}){
         }
     }
     const nonspecificChildren = (
-        <>
+        <div key = "0">
             <LiquidSlider callback = {(val) => {settings.pixelDensity = parseFloat(val);liquidPNGInstance.reset();}} label = {"canvas resolution "} min = {"0.01"} max = {"5.0"} stepsize = {"0.01"} defaultValue = {settings.pixelDensity}/>
             <LiquidDropdown label = "warping " callback = {changeInputCallback} options = {options} value = {inputType}  ></LiquidDropdown>
             <LiquidSlider callback = {(val) => {settings.imageScale = val}} label = {inputType + " scale: "} min = {"0.01"} max = {"4.0"} stepsize = {"0.01"} defaultValue = {settings.imageScale}/>
             <LiquidDropdown callback = {(val) => {settings.imageCoordinateOverflow = val; setImageCoordinateOverflow(val);}} label = 'handle edges by ' options = {['extending','tiling','discarding']} value = {imageCoordinateOverflow}></LiquidDropdown>
-        </>
+        </div>
     );
     const specificChildren = (inputType == 'image')?(
-            <LiquidFilePicker callback = {openFileURL} value = {filename}></LiquidFilePicker>
+            <LiquidFilePicker key = "1" callback = {openFileURL} value = {filename}></LiquidFilePicker>
         ):(
-        <>
+        <div key = "1">
             <LiquidTextBox className = "text_input_box" placeholderText = {settings.displayText} callback = {(event) => {settings.displayText = event.target.value;liquidPNGInstance.loadText(settings.displayText);}}></LiquidTextBox>
             <LiquidCheckbox title = {'lock bounding box'} defaultState={!settings.updateTextBoundingBox} callback = {(val) => {settings.updateTextBoundingBox = !val;if(settings.updateTextBoundingBox){liquidPNGInstance.loadText(settings.displayText);}}}></LiquidCheckbox>
             <LiquidDropdown label = 'font: ' callback = {async (val) => {settings.fontLink = val; settings.font = await settings.p5Inst.loadFont('./fonts/'+settings.fontLink);liquidPNGInstance.reloadText();setFontLink(val);}} options = {settings.fontOptions} value = {fontLink}></LiquidDropdown>
             <LiquidSlider callback = {(val) => {settings.fontSize = parseInt(val); liquidPNGInstance.loadText(settings.displayText);}} label = {"font resolution: "} min = {"1"} max = {"400"} stepsize = {"1"} defaultValue = {settings.fontSize}/>
             <LiquidDropdown label = 'align to the ' callback = {changeTextAlignCallback} options = {alignOptions} value = {textAlignment}></LiquidDropdown>
             <LiquidColorPicker callback = {(val) => {val = hexToRgb(val); settings.fontColor = [val.r/255.0,val.g/255.0,val.b/255.0];}} defaultValue = {'#ff0000'} label = {"text color"}></LiquidColorPicker>
-    </>
+    </div>
     )
     return(
-        <LiquidMenuTab title = "image" background = {'#ff0088ff'} defaultState = {settings.imageMenu.open} children = {[nonspecificChildren,specificChildren]}></LiquidMenuTab>
+        <LiquidMenuTab title = {inputType} background = {'#ff0088ff'} defaultState = {settings.imageMenu.open} children = {[nonspecificChildren,specificChildren]}></LiquidMenuTab>
     )
 }
 export default LiquidImageSettings;

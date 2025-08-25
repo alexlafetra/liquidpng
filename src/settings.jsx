@@ -1,4 +1,5 @@
 export const settings = {
+    ready: false,
     recording : false,
     recordingFinished : false,
     recordedFrame : 0,
@@ -20,6 +21,7 @@ export const settings = {
     backgroundMenu : {open:false},
     imageMenu : {open:true},
     keyframeMenu : {open:false},
+    canvasMenu : {open:true},
     imageCoordinateOverflow: 'discarding', //options are discard, tile, and extend
     imageLink : './star.png',
     backgroundImageLink : './test_background.MOV',
@@ -43,6 +45,7 @@ export const settings = {
     fontColor : [1.0,0,0],
     canvasWidth : window.innerWidth,
     canvasHeight : window.innerHeight,
+    fitCanvasTo:'window',
     globalScale : 1.0,
 
     animation: {

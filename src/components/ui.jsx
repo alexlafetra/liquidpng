@@ -4,6 +4,7 @@ import LiquidCheckbox from './checkbox.jsx'
 import { useState } from 'react'
 import LiquidDistortionSettings from './distortionsettings.jsx'
 import LiquidKeyframeSettings from './keyframesettings.jsx'
+import LiquidCanvasSettings from './canvassettings.jsx'
 
 function LiquidUIContainer({liquidPNGInstance,settings}){
     const [inputType,setInputType] = useState(settings.inputType);
@@ -39,10 +40,11 @@ function LiquidUIContainer({liquidPNGInstance,settings}){
               <img src = "leaf.png" className = "example_image"></img>
             </div>
           }
+          <LiquidCanvasSettings settings = {settings} liquidPNGInstance={liquidPNGInstance}></LiquidCanvasSettings>
           <LiquidImageSettings parentCallback = {(newInputType) => {setInputType(newInputType)}} settings = {settings} liquidPNGInstance={liquidPNGInstance}></LiquidImageSettings>
           <LiquidDistortionSettings settings = {settings} liquidPNGInstance = {liquidPNGInstance}></LiquidDistortionSettings>
           {/* <LiquidSlider callback = {(val) => {settings.globalScale = parseFloat(val);}} label = {"global scale"} min = {-10.0} max = {10.0} stepsize = {0.01} defaultValue = {settings.globalScale}/> */}
-          <LiquidBackgroundSettings settings = {settings}></LiquidBackgroundSettings>
+          <LiquidBackgroundSettings settings = {settings} liquidPNGInstance = {liquidPNGInstance}></LiquidBackgroundSettings>
           <LiquidKeyframeSettings settings = {settings} liquidPNGInstance={liquidPNGInstance}></LiquidKeyframeSettings>
           </>
         }

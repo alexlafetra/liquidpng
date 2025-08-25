@@ -50,9 +50,8 @@ function LiquidSlider({label,callback,id,min,max,stepsize,defaultValue,currentVa
         WebkitAppearance: 'none',  /* Override default CSS styles */
         appearance: 'none',
         height: '20px',
-        // width:'100%',
-        // maxWidth:'200px',
-        backgroundColor:'#0000ff',
+        width:'100px',
+        backgroundColor:'#000000',
         outline: 'none',
         overflow: 'hidden',
         cursor:'pointer',

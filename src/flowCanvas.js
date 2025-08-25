@@ -10,8 +10,39 @@ class FlowCanvas{
         this.settings = settings;
         this.currentText = settings.displayText;
     }
+    getCanvasDimensions(){
+        switch(this.settings.fitCanvasTo){
+          case 'custom dimensions':
+                return {width:this.settings.canvasWidth,height:this.settings.canvasHeight};
+          case 'background image':
+                if(this.settings.backgroundImage == null)
+                    return {width:window.innerWidth,height:window.innerHeight};
+                else{
+                    let w,h;
+                    //if window is landscape, max image dimension will be height
+                    if(window.innerWidth > window.innerHeight){
+                        h = window.innerHeight;
+                        w = this.settings.backgroundImage.width/this.settings.backgroundImage.height * h;
+                    }
+                    else{
+                        w = window.innerWidth;
+                        h = this.settings.backgroundImage.height/this.settings.backgroundImage.width * w;
+                    }
+                    return {width:w,height:h};
+                }
+          case 'window':
+                return {width:window.innerWidth,height:window.innerHeight};
+        }
+    }
+    resetCanvasDimensions(){
+        if(this.settings.ready){
+            const dims = this.getCanvasDimensions();
+            this.settings.p5Inst.resizeCanvas(dims.width,dims.height);
+            console.log(dims);
+        }
+    }
     reset(){
-        this.settings.p5Inst.resizeCanvas(window.innerWidth,window.innerHeight);
+        this.resetCanvasDimensions();
         this.settings.p5Inst.pixelDensity(this.settings.pixelDensity);
         this.settings.srcImage = this.settings.p5Inst.createFramebuffer({ width: this.settings.image.width, height: this.settings.image.height, textureFiltering: this.settings.p5Inst.NEAREST, format: this.settings.p5Inst.FLOAT});
         this.init();
@@ -38,6 +69,7 @@ class FlowCanvas{
         else{
             this.reloadImage();
         }
+        this.settings.ready = true;
     }
     async loadNewImage(fname){
         const img = await this.p5.loadImage(fname);

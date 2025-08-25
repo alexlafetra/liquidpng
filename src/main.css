@@ -82,7 +82,7 @@ input{
     padding-left:20px;
     /* backface-visibility: visible; */
     /* -webkit-backface-visibility: visible; */
-    width:fit-content;
+    /* width:fit-content; */
 }
 /* hiding the scrollbar */
 .ui_container::-webkit-scrollbar {
@@ -95,8 +95,12 @@ input{
 .liquid_menu_tab_items{
     padding-left: 10px;
 }
-canvas{
-    image-rendering: pixelated; image-rendering: crisp-edges;
+.p5Canvas{
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    margin:auto;
+    display:block;
+    /* align-content: center; */
 }
 .liquid_menu_tab_title{
     width:fit-content;
@@ -259,4 +263,19 @@ canvas{
 .new_keyframe_button:hover{
     cursor:pointer;
     background-color:blue;
+}
+
+.number_input_label{
+    font-family:'Times New Roman', Times, serif;
+    color:#ffffff;
+    mix-blend-mode: difference;
+}
+.number_input_box{
+    width:4ch;
+    color:#ffffff;
+    mix-blend-mode: difference;
+    background-color:transparent;
+    font-family: monospace;
+    border:none;
+    border-radius:2px;
 }

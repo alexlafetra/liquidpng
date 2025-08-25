@@ -86,7 +86,6 @@ function LiquidImageSettings({parentCallback,settings,liquidPNGInstance}){
     }
     const nonspecificChildren = (
         <div key = "0">
-            <LiquidSlider callback = {(val) => {settings.pixelDensity = parseFloat(val);liquidPNGInstance.reset();}} label = {"canvas resolution "} min = {"0.01"} max = {"5.0"} stepsize = {"0.01"} defaultValue = {settings.pixelDensity}/>
             <LiquidDropdown label = "warping " callback = {changeInputCallback} options = {options} value = {inputType}  ></LiquidDropdown>
             <LiquidSlider callback = {(val) => {settings.imageScale = val}} label = {inputType + " scale: "} min = {"0.01"} max = {"4.0"} stepsize = {"0.01"} defaultValue = {settings.imageScale}/>
             <LiquidDropdown callback = {(val) => {settings.imageCoordinateOverflow = val; setImageCoordinateOverflow(val);}} label = 'handle edges by ' options = {['extending','tiling','discarding']} value = {imageCoordinateOverflow}></LiquidDropdown>

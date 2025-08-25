@@ -55,7 +55,8 @@ function App() {
       settings.backgroundImage = settings.image;
       settings.font = await p.loadFont('./fonts/'+settings.fontLink);
       settings.p5Inst.setAttributes('antialias', false);
-      settings.mainCanvas = p.createCanvas(settings.canvasWidth,settings.canvasHeight,p.WEBGL);
+      const dims = liquidPNG.getCanvasDimensions();
+      settings.mainCanvas = p.createCanvas(dims.width,dims.height,p.WEBGL);
       settings.p5Inst.pixelDensity(settings.pixelDensity);
       settings.srcImage = p.createFramebuffer({ width: settings.image.width, height: settings.image.height, textureFiltering: p.NEAREST, format: p.FLOAT});
 
@@ -137,7 +138,8 @@ function App() {
         }
     }
     p.windowResized = (e) => {
-      p.resizeCanvas(window.innerWidth,window.innerHeight);
+      if(settings.fitCanvasTo == 'window')
+        p.resizeCanvas(window.innerWidth,window.innerHeight);
     }
 
     // Called automatically after p5.js `setup()`
@@ -200,6 +202,9 @@ function App() {
 
   return (
     <div className = "app_container">
+      <div style = {{position:'absolute',width:'100%',left:'0px',top:'0px'}}>
+        <main></main>
+      </div>
       {/* holds the sketch */}
       {recording &&
         <div style = {{position:'absolute',right:'20px',color:'#000000',fontSize:'20pt'}}>{'recording frame '+numberOfFramesRecorded}</div>

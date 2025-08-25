@@ -6,7 +6,7 @@ import LiquidCheckbox from './checkbox.jsx'
 import LiquidMenuTab from './menutab.jsx'
 import LiquidFilePicker from './filepicker.jsx'
 
-function LiquidBackgroundSettings({settings}){
+function LiquidBackgroundSettings({settings,liquidPNGInstance}){
     const [backgroundStyle,setBackgroundStyle] = useState(settings.backgroundStyle);
     const [fileName,setFilename] = useState('[upload an image]');
     //used for updating the color slider
@@ -65,6 +65,9 @@ function LiquidBackgroundSettings({settings}){
                 settings.backgroundStyle = 2;
                 settings.backgroundIsVideo = true;
                 // URL.revokeObjectURL(videoURL);
+                if(settings.fitCanvasTo == 'background image'){
+                    liquidPNG.resetCanvasDimensions();
+                }
             }
         }
         //image
@@ -78,6 +81,9 @@ function LiquidBackgroundSettings({settings}){
                 settings.backgroundImage = await settings.p5Inst.loadImage(reader.result);
                 settings.backgroundStyle = 2;
                 settings.backgroundIsVideo = false;
+                if(settings.fitCanvasTo == 'background image'){
+                    liquidPNG.resetCanvasDimensions();
+                }
             }
             //read in the file
             reader.readAsDataURL(file);

@@ -48,6 +48,14 @@ export const settings = {
     fitCanvasTo:'window',
     globalScale : 1.0,
 
+    //array for holding the flow nodes
+    //stored as x,y, magnitude (has to be a flat array, not an array of arrays)
+    flowPoints : [
+        0.5,0.5,-0.5,
+        0.0,0.8,0.1
+    ],
+    movingFlowPoint: null,
+
     animation: {
       active:false,
       xMotion : -2.0,

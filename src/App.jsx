@@ -12,6 +12,17 @@ import JSZip from 'jszip'
 function App() {
   const [numberOfFramesRecorded,setNumberOfFramesRecorded] = useState(0);
   const [recording,setRecording] = useState(false);
+  const [targetFlowPoint,setTargetFlowPoint] = useState(null);
+  const targetFlowPointRef = useRef(targetFlowPoint);
+  useEffect(() => {
+    targetFlowPointRef.current = targetFlowPoint;
+  },[targetFlowPoint]);
+
+  const [flowPointCoordinates,setFlowPointCoordinates] = useState(null);
+  const flowPointCoordinatesRef = useRef(flowPointCoordinates);
+  useEffect(() => {
+    flowPointCoordinatesRef.current = flowPointCoordinates;
+  },[flowPointCoordinates]);
   const containerRef = useRef();
   const zip = new JSZip();
 
@@ -85,6 +96,7 @@ function App() {
       }
     }
     p.mouseReleased = () =>{
+      setTargetFlowPoint(null);
         if(p.keyIsDown(p.SHIFT)){
             if(settings.viewWindow.dragStarted){
                 settings.viewWindow.end = {x:p.mouseX,y:p.mouseY}
@@ -106,7 +118,19 @@ function App() {
             settings.noiseWindow.dragStarted = false;
         }
     }
+    p.mouseWheel = (e) => {
+      if(targetFlowPointRef.current !== null){
+        console.log(e);
+        settings.flowPoints[targetFlowPointRef.current*3+2]++;
+        setFlowPointCoordinates({x:p.mouseX/window.innerWidth,y:p.mouseY/window.innerHeight});
+      }
+    }
     p.mouseDragged = () =>{
+      if(targetFlowPointRef.current !== null){
+        settings.flowPoints[targetFlowPointRef.current] = p.mouseX/window.innerWidth;
+        settings.flowPoints[targetFlowPointRef.current+1] = p.mouseY/window.innerHeight;
+        setFlowPointCoordinates({x:p.mouseX/window.innerWidth,y:p.mouseY/window.innerHeight});
+      }
         if(p.mouseX < settings.mainCanvas.width && p.mouseY < settings.mainCanvas.height && p.mouseX > 0 && p.mouseY > 0){
             if(p.keyIsDown(p.SHIFT)){
                 if(!settings.viewWindow.dragStarted){
@@ -200,6 +224,41 @@ function App() {
     return () => sketch.remove();
   },[]);
 
+  function flowPointDivs(settings){
+    const children = [];
+    for(let i = 0; i<settings.flowPoints.length; i+=3){
+      const size = Math.abs(settings.flowPoints[i+2]*200);
+      const coords = {x:settings.flowPoints[i]*window.innerWidth - size/2,y:settings.flowPoints[i+1]*window.innerHeight - size/2};
+      // if(flowPointCoordinatesRef.current !== null){
+      //   coords.x = flowPointCoordinates.x - size/2;
+      //   coords.y = flowPointCoordinates.y - size/2;
+      // }
+      const style = {
+        position:'absolute',
+        left:coords.x,
+        top:coords.y,
+        width:size,
+        height:size,
+        backgroundColor:'transparent',
+        zIndex : 5,
+        borderRadius : size/2,
+        border : 'dashed 1px black',
+        cursor:'pointer',
+        animation:'flowPoint 0.5s infinite'
+      }
+      const clickCallback = (e) => {
+        setTargetFlowPoint(i);
+      }
+      const unclickCallback = (e) => {
+        setTargetFlowPoint(null);
+      }
+      children.push(
+        <div key = {i} onMouseUp = {unclickCallback} onMouseDown = {clickCallback} style = {style}></div>
+      )
+    }
+    return children;
+  }
+
   return (
     <div className = "app_container">
       <div style = {{position:'absolute',width:'100%',left:'0px',top:'0px'}}>
@@ -209,6 +268,7 @@ function App() {
       {recording &&
         <div style = {{position:'absolute',right:'20px',color:'#000000',fontSize:'20pt'}}>{'recording frame '+numberOfFramesRecorded}</div>
       }
+      {flowPointDivs(settings)}
       <LiquidUIContainer liquidPNGInstance={liquidPNG} settings = {settings}></LiquidUIContainer>
     </div>
   )

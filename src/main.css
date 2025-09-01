@@ -280,3 +280,8 @@ input{
     border:none;
     border-radius:2px;
 }
+
+@keyframes flowPoint{
+    from {background-color: #ff77ff;border-width: 2px;}
+    to {background-color: #ff0000;border-width: 0px;}
+}

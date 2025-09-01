@@ -38,7 +38,7 @@ class FlowCanvas{
         if(this.settings.ready){
             const dims = this.getCanvasDimensions();
             this.settings.p5Inst.resizeCanvas(dims.width,dims.height);
-            console.log(dims);
+            // console.log(dims);
         }
     }
     reset(){
@@ -153,6 +153,9 @@ class FlowCanvas{
         this.p5.clear();
         this.p5.shader(this.flowFieldShader);
         this.flowFieldShader.setUniform('uClampFloats',true);
+        this.flowFieldShader.setUniform('uFlowPoints',this.settings.flowPoints);
+        this.flowFieldShader.setUniform('uFlowPointCount',Math.trunc(this.settings.flowPoints.length/3));
+        this.flowFieldShader.setUniform('uUseFlowPoints',true);
         this.flowFieldShader.setUniform('uHighFrequencyNoiseAmplitude',this.settings.highFNoise.active?this.settings.highFNoise.amplitude:0.0);
         this.flowFieldShader.setUniform('uHighFrequencyNoiseScale',this.settings.highFNoise.scale/this.settings.globalScale);
         this.flowFieldShader.setUniform('uLowFrequencyNoiseAmplitude',this.settings.lowFNoise.active?this.settings.lowFNoise.amplitude:0.0);
@@ -237,6 +240,9 @@ class FlowCanvas{
             uniform float uPerlinNoiseAmplitude;
             uniform float uPerlinNoiseScale;
 
+            uniform vec3 uFlowPoints[10];
+            uniform int uFlowPointCount;
+
             uniform bool uClampFloats;
 
             in vec2 vPosition;
@@ -283,15 +289,28 @@ class FlowCanvas{
                 return uPerlinNoiseAmplitude*(nf*nf*nf*nf);
             }
             void main() {
-                float r =   ((uLowFrequencyNoiseAmplitude>0.0)?(uLowFrequencyNoiseAmplitude * (noise(vPosition*uLowFrequencyNoiseScale + uNoiseOffset) - 0.5)):0.0)+ 
-                            ((uMediumFrequencyNoiseAmplitude>0.0)?(uMediumFrequencyNoiseAmplitude * (noise(vPosition*uMediumFrequencyNoiseScale + uNoiseOffset) - 0.5)):0.0) + 
-                            ((uHighFrequencyNoiseAmplitude>0.0)?(uHighFrequencyNoiseAmplitude * (noise(vPosition*uHighFrequencyNoiseScale + uNoiseOffset) - 0.5)):0.0) +
-                            ((uPerlinNoiseAmplitude>0.0)?perlinNoise(vPosition*uPerlinNoiseScale + uNoiseOffset):0.0);
-                float g =   ((uLowFrequencyNoiseAmplitude>0.0)?(uLowFrequencyNoiseAmplitude * (noise(vPosition.yx*uLowFrequencyNoiseScale + uNoiseOffset) - 0.5)):0.0)+ 
-                            ((uMediumFrequencyNoiseAmplitude>0.0)?(uMediumFrequencyNoiseAmplitude * (noise(vPosition.yx*uMediumFrequencyNoiseScale + uNoiseOffset) - 0.5)):0.0) + 
-                            ((uHighFrequencyNoiseAmplitude>0.0)?(uHighFrequencyNoiseAmplitude * (noise(vPosition.yx*uHighFrequencyNoiseScale + uNoiseOffset) - 0.5)):0.0) +
-                            ((uPerlinNoiseAmplitude>0.0)?perlinNoise(vPosition.yx*uPerlinNoiseScale + uNoiseOffset):0.0);
-                fragColor = vec4(r,g,1.0,1.0);
+                // float r =   ((uLowFrequencyNoiseAmplitude>0.0)?(uLowFrequencyNoiseAmplitude * (noise(vPosition*uLowFrequencyNoiseScale + uNoiseOffset) - 0.5)):0.0)+ 
+                //             ((uMediumFrequencyNoiseAmplitude>0.0)?(uMediumFrequencyNoiseAmplitude * (noise(vPosition*uMediumFrequencyNoiseScale + uNoiseOffset) - 0.5)):0.0) + 
+                //             ((uHighFrequencyNoiseAmplitude>0.0)?(uHighFrequencyNoiseAmplitude * (noise(vPosition*uHighFrequencyNoiseScale + uNoiseOffset) - 0.5)):0.0) +
+                //             ((uPerlinNoiseAmplitude>0.0)?perlinNoise(vPosition*uPerlinNoiseScale + uNoiseOffset):0.0);
+                // float g =   ((uLowFrequencyNoiseAmplitude>0.0)?(uLowFrequencyNoiseAmplitude * (noise(vPosition.yx*uLowFrequencyNoiseScale + uNoiseOffset) - 0.5)):0.0)+ 
+                //             ((uMediumFrequencyNoiseAmplitude>0.0)?(uMediumFrequencyNoiseAmplitude * (noise(vPosition.yx*uMediumFrequencyNoiseScale + uNoiseOffset) - 0.5)):0.0) + 
+                //             ((uHighFrequencyNoiseAmplitude>0.0)?(uHighFrequencyNoiseAmplitude * (noise(vPosition.yx*uHighFrequencyNoiseScale + uNoiseOffset) - 0.5)):0.0) +
+                //             ((uPerlinNoiseAmplitude>0.0)?perlinNoise(vPosition.yx*uPerlinNoiseScale + uNoiseOffset):0.0);
+                // fragColor = vec4(r,g,1.0,1.0);
+                if(uFlowPointCount > 0){
+                    float r = 0.0;
+                    float g = 0.0;
+                    for(int i = 0; i<uFlowPointCount; i++){
+                        float dist = distance(vPosition.xy,uFlowPoints[i].xy);
+                        // dist *= dist;
+                        r += (uFlowPoints[i].x *  uFlowPoints[i].z)/(dist);
+                        g += (uFlowPoints[i].y *  uFlowPoints[i].z)/(dist);
+                    }
+                    g /= float(uFlowPointCount);
+                    r /= float(uFlowPointCount);
+                    fragColor = vec4(r,g,1.0,1.0);
+                }
             }
             `
         }
@@ -399,8 +418,12 @@ class FlowCanvas{
                         fragColor = imageColor;
                     }
                     else{
-                        discard;
+                        vec4 c = texture(uFlowTexture,vPosition)+0.5;
+                        fragColor = vec4(c.x,0.0,c.y,1.0);
                     }
+                    // else{
+                    //     discard;
+                    // }
                 }
                 //solid color
                 else if(uBackgroundStyle == 1){

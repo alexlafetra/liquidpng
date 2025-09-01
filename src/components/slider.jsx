@@ -8,6 +8,7 @@ function LiquidSlider({label,callback,id,min,max,stepsize,defaultValue,currentVa
     }
 
     const callbackFn = (event) => {
+        event.stopPropagation();
         callback(parseFloat(event.target.value));
         setValue(event.target.value);
     }

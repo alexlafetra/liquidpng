@@ -4,6 +4,7 @@ import LiquidMenuTab from './menutab.jsx'
 import LiquidSlider from './slider.jsx'
 import LiquidButton from './button.jsx'
 import LiquidDropdown from './dropdown.jsx'
+
 import { saveAs } from 'file-saver'
 
 
@@ -130,6 +131,7 @@ function LiquidKeyframeSettings({settings,liquidPNGInstance}){
         else if(full && !focused)
             return keyframeDisplayStyle_full;
     }
+    
     const keyframes = [];
     for(let kf = 0; kf<settings.keyframes.keyframes.length; kf++){
         keyframes.push(<div className = {"keyframe_display"} style = {getDisplayStyle(kf,activeKeyframe)} onClick = {(e) => {settings.keyframes.needsToSetCanvasTo = kf; setActiveKeyframe(kf); setInterpType(settings.keyframes.keyframes[kf].easeType); setTransitionLength(settings.keyframes.keyframes[kf].transitionLength);}}></div>);

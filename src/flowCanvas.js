@@ -5,10 +5,19 @@ const glsl = x => x;
 feed video in as backgroundcolor AND textcolor? but the pixels it grqbs need to be from the original coords, not warped coords
 */
 
+//used for updating the color slider
+//outputs [r,g,b] with range 0-255
+function hexToRgb(hex) {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    if(result){
+        return [parseInt(result[1], 16)/255.0,parseInt(result[2], 16)/255.0,parseInt(result[3], 16)/255.0];
+    }
+    return null;
+}
+
 class FlowCanvas{
     constructor(settings){
         this.settings = settings;
-        this.currentText = settings.displayText;
     }
     getCanvasDimensions(){
         switch(this.settings.fitCanvasTo){
@@ -38,56 +47,48 @@ class FlowCanvas{
         if(this.settings.ready){
             const dims = this.getCanvasDimensions();
             this.settings.p5Inst.resizeCanvas(dims.width,dims.height);
-            // console.log(dims);
         }
     }
-    reset(){
-        this.resetCanvasDimensions();
-        this.settings.p5Inst.pixelDensity(this.settings.pixelDensity);
-        this.settings.srcImage = this.settings.p5Inst.createFramebuffer({ width: this.settings.image.width, height: this.settings.image.height, textureFiltering: this.settings.p5Inst.NEAREST, format: this.settings.p5Inst.FLOAT});
-        this.init();
-    }
     saveImage(){
-        this.render();
+        this.render(this.settings);
         let dataURL = this.settings.mainCanvas.elt.toDataURL('image/png');
-        console.log(this.settings.mainCanvas);
         let a = document.createElement('a');
         a.href = dataURL;
         a.download = 'liquid.png';
         a.click();
     }
-    init(){
+    init(settings){
+        if(settings !== undefined)
+            this.settings = settings;
+        this.currentText = this.settings.displayText;
         this.p5 = this.settings.p5Inst;
         this.mainCanvas = this.settings.mainCanvas;
+        this.srcImage = this.p5.createFramebuffer({ width: this.settings.image.width, height: this.settings.image.height, textureFiltering: this.p5.NEAREST, format: this.p5.FLOAT});
         //holds the flow field
         this.flowFieldCanvas = this.p5.createFramebuffer({ width: this.settings.canvasWidth, height: this.settings.canvasWidth, textureFiltering: this.p5.NEAREST, format: this.settings.clampNoise?this.p5.UNSIGNED_BYTE:this.p5.FLOAT});
-        this.flowFieldShader = this.createFlowFieldShader(this.p5);
+        this.flowFieldShader = this.createFlowFieldShader(settings);
         this.outputShader = this.createOutputShader();
         if(this.settings.inputType == 'text'){
-            this.reloadText();
+            this.reloadText(this.settings);
         }
         else{
-            this.reloadImage();
+            this.loadImage(this.settings.image);
         }
         this.settings.ready = true;
     }
-    async loadNewImage(fname){
-        const img = await this.p5.loadImage(fname);
-        this.loadImage(img);
-    }
-    reloadImage(){
-        this.loadImage(this.settings.image);
-    }
+    // reloadImage(){
+    //     this.loadImage(this.settings.image);
+    // }
     loadImage(im){
-        this.settings.image = im;
-        this.settings.srcImage = this.p5.createFramebuffer({ width: this.settings.image.width, height: this.settings.image.height, textureFiltering: this.p5.NEAREST, format: this.settings.clampNoise?this.p5.UNSIGNED_BYTE:this.p5.FLOAT});
-        this.settings.srcImage.begin();
+        // this.settings.image = im;
+        this.srcImage = this.p5.createFramebuffer({ width: this.settings.image.width, height: this.settings.image.height, textureFiltering: this.p5.NEAREST, format: this.settings.clampNoise?this.p5.UNSIGNED_BYTE:this.p5.FLOAT});
+        this.srcImage.begin();
         this.p5.clear();
         this.p5.image(im,-im.width/2,-im.height/2,im.width,im.height);
-        this.settings.srcImage.end();
+        this.srcImage.end();
     }
-    reloadText(){
-        this.loadText(this.currentText);
+    reloadText(settings){
+        this.loadText(this.currentText,settings);
     }
     getTextBounds(t){
         //obj to store bounds
@@ -107,7 +108,8 @@ class FlowCanvas{
             }
         }
         //add in the textLeading() val for each line height
-        bounds.height += splitText.length * this.p5.textLeading();
+        //this ~could~ just be this.p5.textLeading(), but that throws a warning message rn!
+        bounds.height += splitText.length * this.p5._renderer.textLeading();
 
         //round the bounds UP
         bounds.height = Math.ceil(bounds.height);
@@ -124,92 +126,99 @@ class FlowCanvas{
                 return this.p5.CENTER;
         }
     }
-    loadText(t){
+    loadText(t,settings){
 
         if(t === null || t === undefined){
             return;
         }
 
         //set font settings
-        this.p5.textFont(this.settings.font);
+        this.p5.textFont(this.font);
         this.p5.fill(0,0,0);
         this.p5.noStroke();
-        this.p5.textSize(this.settings.fontSize);
+        this.p5.textSize(settings.fontSize);
         this.p5.textAlign(this.getAlignment(),this.p5.TOP);
-
-        if(this.settings.updateTextBoundingBox){
+        if(!settings.lockTextBoundingBox){
             const bounds = this.getTextBounds(t);
-            this.settings.srcImage = this.p5.createFramebuffer({ width: bounds.width, height: bounds.height, textureFiltering: this.p5.NEAREST, format: this.settings.clampNoise?this.p5.UNSIGNED_BYTE:this.p5.FLOAT});
+            this.srcImage = this.p5.createFramebuffer({ width: bounds.width, height: bounds.height, textureFiltering: this.p5.NEAREST, format: settings.clampNoise?this.p5.UNSIGNED_BYTE:this.p5.FLOAT});
         }
 
-        this.settings.srcImage.begin();
+        this.srcImage.begin();
         this.p5.clear();
-        this.p5.text(t,this.settings.textAlignment == 'left'?-this.settings.srcImage.width/2:(this.settings.textAlignment == 'right'?this.settings.srcImage.width/2:0),-this.settings.srcImage.height/2);
-        this.settings.srcImage.end();
+        this.p5.text(t,settings.textAlignment == 'left'?-this.srcImage.width/2:(settings.textAlignment == 'right'?this.srcImage.width/2:0),-this.srcImage.height/2);
+        this.srcImage.end();
         this.currentText = t;
     }
-    updateFlow(){
+    updateFlow(settings){
         this.flowFieldCanvas.begin();
         this.p5.clear();
         this.p5.shader(this.flowFieldShader);
         this.flowFieldShader.setUniform('uClampFloats',true);
-        this.flowFieldShader.setUniform('uFlowPoints',this.settings.flowPoints);
-        this.flowFieldShader.setUniform('uFlowPointCount',Math.trunc(this.settings.flowPoints.length/3));
+        this.flowFieldShader.setUniform('uFlowPoints',settings.flowPoints);
         this.flowFieldShader.setUniform('uUseFlowPoints',true);
-        this.flowFieldShader.setUniform('uHighFrequencyNoiseAmplitude',this.settings.highFNoise.active?this.settings.highFNoise.amplitude:0.0);
-        this.flowFieldShader.setUniform('uHighFrequencyNoiseScale',this.settings.highFNoise.scale/this.settings.globalScale);
-        this.flowFieldShader.setUniform('uLowFrequencyNoiseAmplitude',this.settings.lowFNoise.active?this.settings.lowFNoise.amplitude:0.0);
-        this.flowFieldShader.setUniform('uLowFrequencyNoiseScale',this.settings.lowFNoise.scale/this.settings.globalScale);
-        this.flowFieldShader.setUniform('uMediumFrequencyNoiseAmplitude',this.settings.mediumFNoise.active?this.settings.mediumFNoise.amplitude:0.0);
-        this.flowFieldShader.setUniform('uMediumFrequencyNoiseScale',this.settings.mediumFNoise.scale/this.settings.globalScale);
-        this.flowFieldShader.setUniform('uPerlinNoiseAmplitude',this.settings.perlinNoise.active?this.settings.perlinNoise.amplitude:0.0);
-        this.flowFieldShader.setUniform('uPerlinNoiseScale',this.settings.perlinNoise.scale/this.settings.globalScale);
-        this.flowFieldShader.setUniform('uViewOffset',[this.settings.viewWindow.offset.x/this.settings.canvasWidth,this.settings.viewWindow.offset.y/this.settings.canvasHeight]);
-        this.flowFieldShader.setUniform('uNoiseOffset',[this.settings.noiseWindow.offset.x/this.settings.canvasWidth,this.settings.noiseWindow.offset.y/this.settings.canvasHeight]);
+        this.flowFieldShader.setUniform('uHighFrequencyNoiseAmplitude',settings.highFNoise.active?settings.highFNoise.amplitude:0.0);
+        this.flowFieldShader.setUniform('uHighFrequencyNoiseScale',settings.highFNoise.scale/settings.globalScale);
+        this.flowFieldShader.setUniform('uLowFrequencyNoiseAmplitude',settings.lowFNoise.active?settings.lowFNoise.amplitude:0.0);
+        this.flowFieldShader.setUniform('uLowFrequencyNoiseScale',settings.lowFNoise.scale/settings.globalScale);
+        this.flowFieldShader.setUniform('uMediumFrequencyNoiseAmplitude',settings.mediumFNoise.active?settings.mediumFNoise.amplitude:0.0);
+        this.flowFieldShader.setUniform('uMediumFrequencyNoiseScale',settings.mediumFNoise.scale/settings.globalScale);
+        this.flowFieldShader.setUniform('uPerlinNoiseAmplitude',settings.perlinNoise.active?settings.perlinNoise.amplitude:0.0);
+        this.flowFieldShader.setUniform('uPerlinNoiseScale',settings.perlinNoise.scale/settings.globalScale);
+        this.flowFieldShader.setUniform('uViewOffset',[settings.viewWindow.offset.x/settings.canvasWidth,settings.viewWindow.offset.y/settings.canvasHeight]);
+        this.flowFieldShader.setUniform('uNoiseOffset',[settings.noiseWindow.offset.x/settings.canvasWidth,settings.noiseWindow.offset.y/settings.canvasHeight]);
         this.p5.rect(-this.flowFieldCanvas.width / 2, -this.flowFieldCanvas.height / 2, this.flowFieldCanvas.width, this.flowFieldCanvas.height);
         this.flowFieldCanvas.end();
     }
-    render(){
-        if(this.settings.needsToReloadImage){
-            this.settings.needsToReloadImage = false;
-            if(this.settings.inputType == 'image')
-                this.reloadImage();
-            else
-                this.reloadText();
+    render(settings){
+        if(settings.animation.active){
+            settings.noiseWindow.offset.x += settings.animation.xMotion;
+            settings.noiseWindow.offset.y += settings.animation.yMotion;
         }
-        if(this.settings.animation.active){
-            this.settings.noiseWindow.offset.x += this.settings.animation.xMotion;
-            this.settings.noiseWindow.offset.y += this.settings.animation.yMotion;
+        if(this.updateShaders){
+            this.flowFieldShader = this.createFlowFieldShader(settings);
+            this.updateShaders = false;
         }
-        this.updateFlow();
+        if(this.needsToReloadImage){
+            if(settings.inputType == 'image'){
+                this.loadImage(settings.image);
+            }
+            else if(settings.inputType == 'text'){
+                this.reloadText(settings);
+            }
+            this.needsToReloadImage = false;
+        }
+        this.updateFlow(settings);
         this.p5.clear();
         this.p5.shader(this.outputShader);
-        this.outputShader.setUniform('uTargetImage',this.settings.srcImage);
-        this.outputShader.setUniform('uCoordinateOverflowStyle',(this.settings.imageCoordinateOverflow == 'extending')?0:((this.settings.imageCoordinateOverflow == 'tiling')?1:2));
-        this.outputShader.setUniform('uInputType',(this.settings.inputType == 'text')?0:1);
-        this.outputShader.setUniform('uTextColor',this.settings.fontColor);
+        this.outputShader.setUniform('uTargetImage',this.srcImage);
+        this.outputShader.setUniform('uCoordinateOverflowStyle',(settings.imageCoordinateOverflow == 'extending')?0:((settings.imageCoordinateOverflow == 'tiling')?1:2));
+        this.outputShader.setUniform('uInputType',(settings.inputType == 'text')?0:1);
+        this.outputShader.setUniform('uTextColor',hexToRgb(settings.fontColor));
         
         //scaling to keep the image in proportion when the canvas is at a different aspect ratio
         const proportionScale = {
-            x:this.settings.srcImage.width/this.settings.mainCanvas.width * 400.0/this.settings.fontSize,
-            y:this.settings.srcImage.height/this.settings.mainCanvas.height * 400.0/this.settings.fontSize
+            x:this.srcImage.width/settings.mainCanvas.width * 400.0/settings.fontSize,
+            y:this.srcImage.height/settings.mainCanvas.height * 400.0/settings.fontSize
         };
-        this.outputShader.setUniform('uImageScale',[this.settings.imageScale*proportionScale.x*this.settings.globalScale,this.settings.imageScale*proportionScale.y*this.settings.globalScale]);
+        this.outputShader.setUniform('uImageScale',[settings.imageScale*proportionScale.x*settings.globalScale,settings.imageScale*proportionScale.y*settings.globalScale]);
         this.outputShader.setUniform('uFlowTexture',this.flowFieldCanvas);
-        this.outputShader.setUniform('uBackgroundStyle',this.settings.backgroundStyle);
-        this.outputShader.setUniform('uUseBackgroundImage',this.settings.useBackgroundImage);
-        this.outputShader.setUniform('uBackgroundColor',this.settings.backgroundColor);
-        this.outputShader.setUniform('uBackgroundImage',this.settings.backgroundImage);
-        this.outputShader.setUniform('uGridSize',this.settings.gridSize);
-        this.outputShader.setUniform('uGridColor',this.settings.gridColor);
-        this.outputShader.setUniform('uGridThickness',this.settings.gridThickness);
-        this.outputShader.setUniform('uBlurGridIntensity',this.settings.blurGridIntensity);
-        this.outputShader.setUniform('uViewOffset',[this.settings.viewWindow.offset.x/this.settings.canvasWidth,this.settings.viewWindow.offset.y/this.settings.canvasHeight]);
+        this.outputShader.setUniform('uFillTextType',(settings.fillTextWith == 'color')?0:1);
+        this.outputShader.setUniform('uBackgroundStyle',settings.backgroundStyle);
+        this.outputShader.setUniform('uUseBackgroundImage',settings.useBackgroundImage);
+        this.outputShader.setUniform('uBackgroundColor',hexToRgb(settings.backgroundColor));
+        this.outputShader.setUniform('uBackgroundImage',settings.backgroundImage);
+        this.outputShader.setUniform('uGridSize',settings.gridSize);
+        this.outputShader.setUniform('uGridColor',hexToRgb(settings.gridColor));
+        this.outputShader.setUniform('uGridThickness',settings.gridThickness);
+        this.outputShader.setUniform('uBlurGridIntensity',settings.blurGridIntensity);
+        this.outputShader.setUniform('uViewOffset',[settings.viewWindow.offset.x/settings.canvasWidth,settings.viewWindow.offset.y/settings.canvasHeight]);
         this.p5.quad(1,1,-1,1,-1,-1,1,-1);
-        // this.p5.quad(1,1,1,-1,-1,-1,-1,1);
         this.p5.resetShader();
+        return settings;
     }
-    createFlowFieldShader(){
+    createFlowFieldShader(settings){
+        //not sure why... but u need to add one to this to make it work
+        const flowPointCount = (settings.flowPoints.length <= 3)?2.0:Math.trunc(settings.flowPoints.length+1);
         const shaderSource = {
             vertexShader: ``+glsl`#version 300 es
             precision highp float;
@@ -224,6 +233,7 @@ class FlowCanvas{
                 gl_Position = vec4(aPosition*2.0-1.0,1.0);
             }
             `,
+
 
             //stole the noise algos from: https://gist.github.com/patriciogonzalezvivo/670c22f3966e662d2f83
             fragmentShader:``+glsl`#version 300 es
@@ -240,8 +250,8 @@ class FlowCanvas{
             uniform float uPerlinNoiseAmplitude;
             uniform float uPerlinNoiseScale;
 
-            uniform vec3 uFlowPoints[10];
-            uniform int uFlowPointCount;
+            uniform vec3 uFlowPoints[`+flowPointCount+glsl`];
+            const int flowPointCount = `+flowPointCount+glsl`;
 
             uniform bool uClampFloats;
 
@@ -289,28 +299,27 @@ class FlowCanvas{
                 return uPerlinNoiseAmplitude*(nf*nf*nf*nf);
             }
             void main() {
-                // float r =   ((uLowFrequencyNoiseAmplitude>0.0)?(uLowFrequencyNoiseAmplitude * (noise(vPosition*uLowFrequencyNoiseScale + uNoiseOffset) - 0.5)):0.0)+ 
-                //             ((uMediumFrequencyNoiseAmplitude>0.0)?(uMediumFrequencyNoiseAmplitude * (noise(vPosition*uMediumFrequencyNoiseScale + uNoiseOffset) - 0.5)):0.0) + 
-                //             ((uHighFrequencyNoiseAmplitude>0.0)?(uHighFrequencyNoiseAmplitude * (noise(vPosition*uHighFrequencyNoiseScale + uNoiseOffset) - 0.5)):0.0) +
-                //             ((uPerlinNoiseAmplitude>0.0)?perlinNoise(vPosition*uPerlinNoiseScale + uNoiseOffset):0.0);
-                // float g =   ((uLowFrequencyNoiseAmplitude>0.0)?(uLowFrequencyNoiseAmplitude * (noise(vPosition.yx*uLowFrequencyNoiseScale + uNoiseOffset) - 0.5)):0.0)+ 
-                //             ((uMediumFrequencyNoiseAmplitude>0.0)?(uMediumFrequencyNoiseAmplitude * (noise(vPosition.yx*uMediumFrequencyNoiseScale + uNoiseOffset) - 0.5)):0.0) + 
-                //             ((uHighFrequencyNoiseAmplitude>0.0)?(uHighFrequencyNoiseAmplitude * (noise(vPosition.yx*uHighFrequencyNoiseScale + uNoiseOffset) - 0.5)):0.0) +
-                //             ((uPerlinNoiseAmplitude>0.0)?perlinNoise(vPosition.yx*uPerlinNoiseScale + uNoiseOffset):0.0);
-                // fragColor = vec4(r,g,1.0,1.0);
-                if(uFlowPointCount > 0){
-                    float r = 0.0;
-                    float g = 0.0;
-                    for(int i = 0; i<uFlowPointCount; i++){
+                float r =   ((uLowFrequencyNoiseAmplitude>0.0)?(uLowFrequencyNoiseAmplitude * (noise(vPosition*uLowFrequencyNoiseScale + uNoiseOffset) - 0.5)):0.0)+ 
+                            ((uMediumFrequencyNoiseAmplitude>0.0)?(uMediumFrequencyNoiseAmplitude * (noise(vPosition*uMediumFrequencyNoiseScale + uNoiseOffset) - 0.5)):0.0) + 
+                            ((uHighFrequencyNoiseAmplitude>0.0)?(uHighFrequencyNoiseAmplitude * (noise(vPosition*uHighFrequencyNoiseScale + uNoiseOffset) - 0.5)):0.0) +
+                            ((uPerlinNoiseAmplitude>0.0)?perlinNoise(vPosition*uPerlinNoiseScale + uNoiseOffset):0.0);
+                float g =   ((uLowFrequencyNoiseAmplitude>0.0)?(uLowFrequencyNoiseAmplitude * (noise(vPosition.yx*uLowFrequencyNoiseScale + uNoiseOffset) - 0.5)):0.0)+ 
+                            ((uMediumFrequencyNoiseAmplitude>0.0)?(uMediumFrequencyNoiseAmplitude * (noise(vPosition.yx*uMediumFrequencyNoiseScale + uNoiseOffset) - 0.5)):0.0) + 
+                            ((uHighFrequencyNoiseAmplitude>0.0)?(uHighFrequencyNoiseAmplitude * (noise(vPosition.yx*uHighFrequencyNoiseScale + uNoiseOffset) - 0.5)):0.0) +
+                            ((uPerlinNoiseAmplitude>0.0)?perlinNoise(vPosition.yx*uPerlinNoiseScale + uNoiseOffset):0.0);
+                if(flowPointCount != 0){
+                    vec2 force;
+                    for(int i = 0; i<flowPointCount; i++){
                         float dist = distance(vPosition.xy,uFlowPoints[i].xy);
-                        // dist *= dist;
-                        r += (uFlowPoints[i].x *  uFlowPoints[i].z)/(dist);
-                        g += (uFlowPoints[i].y *  uFlowPoints[i].z)/(dist);
+                        dist *= dist;
+                        // force += uFlowPoints[i].z * (vec2(uFlowPoints[i].x,uFlowPoints[i].y) - vPosition)/dist;
+                        force += uFlowPoints[i].z * (vPosition - vec2(uFlowPoints[i].x,uFlowPoints[i].y))/dist;
                     }
-                    g /= float(uFlowPointCount);
-                    r /= float(uFlowPointCount);
-                    fragColor = vec4(r,g,1.0,1.0);
+                    // force /= float(flowPointCount);
+                    r += force.x;
+                    g += force.y;
                 }
+                fragColor = vec4(r,g,1.0,1.0);
             }
             `
         }
@@ -355,6 +364,7 @@ class FlowCanvas{
             //image or text
             uniform int uInputType;
             uniform vec3 uTextColor;
+            uniform int uFillTextType;
 
             //0 is clear, 1 is solid color, 2 is grid
             uniform int uBackgroundStyle;
@@ -364,9 +374,9 @@ class FlowCanvas{
             out vec4 fragColor;
 
             void main() {
-                vec2 sampleCoordinates = texture(uFlowTexture,vPosition).xy - 0.5 + uViewOffset;
-                vec2 warpedCoordinates = vPosition + sampleCoordinates;
-                vec2 adjustedCoordinates = (warpedCoordinates - 0.5)/(uImageScale) + 0.5;
+                vec2 distortion = texture(uFlowTexture,vPosition).xy;
+                vec2 warpedCoordinates = vPosition + distortion;
+                vec2 adjustedCoordinates = (warpedCoordinates - 0.5)/(uImageScale) + uViewOffset;
                 bool skipImage = false;
                 switch(uCoordinateOverflowStyle){
                     //extend
@@ -403,7 +413,12 @@ class FlowCanvas{
                     imageColor = texture(uTargetImage,adjustedCoordinates);
                     //if it's text
                     if(uInputType == 0 && imageColor.a > 0.0){
-                        imageColor = vec4(uTextColor,imageColor.a);
+                        // normal -- fill it with a color
+                        if(uFillTextType == 0)
+                            imageColor = vec4(uTextColor,imageColor.a);
+                        //fill it with the background image
+                        else if(uFillTextType == 1)
+                            imageColor = texture(uBackgroundImage,warpedCoordinates);
                     }
                 }
                 
@@ -417,13 +432,13 @@ class FlowCanvas{
                     else if(imageColor.a != 0.0){
                         fragColor = imageColor;
                     }
-                    else{
-                        vec4 c = texture(uFlowTexture,vPosition)+0.5;
-                        fragColor = vec4(c.x,0.0,c.y,1.0);
-                    }
                     // else{
-                    //     discard;
+                    //     vec4 c = texture(uFlowTexture,vPosition)+0.5;
+                    //     fragColor = vec4(c.x,0.0,c.y,1.0);
                     // }
+                    else{
+                        discard;
+                    }
                 }
                 //solid color
                 else if(uBackgroundStyle == 1){

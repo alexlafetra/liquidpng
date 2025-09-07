@@ -96,7 +96,7 @@ function LiquidImageSettings({parentCallback,settings,liquidPNGInstance}){
         ):(
         <div key = "1">
             <LiquidTextBox className = "text_input_box" placeholderText = {settings.displayText} callback = {(event) => {settings.displayText = event.target.value;liquidPNGInstance.loadText(settings.displayText);}}></LiquidTextBox>
-            <LiquidCheckbox title = {'lock bounding box'} defaultState={!settings.updateTextBoundingBox} callback = {(val) => {settings.updateTextBoundingBox = !val;if(settings.updateTextBoundingBox){liquidPNGInstance.loadText(settings.displayText);}}}></LiquidCheckbox>
+            <LiquidCheckbox title = {'lock bounding box'} defaultState={!settings.lockTextBoundingBox} callback = {(val) => {settings.lockTextBoundingBox = !val;if(settings.lockTextBoundingBox){liquidPNGInstance.loadText(settings.displayText);}}}></LiquidCheckbox>
             <LiquidDropdown label = 'font: ' callback = {async (val) => {settings.fontLink = val; settings.font = await settings.p5Inst.loadFont('./fonts/'+settings.fontLink);liquidPNGInstance.reloadText();setFontLink(val);}} options = {settings.fontOptions} value = {fontLink}></LiquidDropdown>
             <LiquidSlider callback = {(val) => {settings.fontSize = parseInt(val); liquidPNGInstance.loadText(settings.displayText);}} label = {"font resolution: "} min = {"1"} max = {"400"} stepsize = {"1"} defaultValue = {settings.fontSize}/>
             <LiquidDropdown label = 'align to the ' callback = {changeTextAlignCallback} options = {alignOptions} value = {textAlignment}></LiquidDropdown>

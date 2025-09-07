@@ -53,7 +53,6 @@ function LiquidBackgroundSettings({settings,liquidPNGInstance}){
             fName = fName.slice(0,10)+'...'+fName.slice(-4);
         }
         setFilename('['+fName+']');
-        // console.log(e);
         //video
         if(isVideo){
             const videoURL = URL.createObjectURL(file);

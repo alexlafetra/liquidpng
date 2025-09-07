@@ -1,8 +1,5 @@
 import { useState } from 'react'
-import LiquidCheckbox from './checkbox.jsx'
 import LiquidMenuTab from './menutab.jsx'
-import LiquidFlowSettings from './flowsettings.jsx'
-import LiquidAnimationSettings from './animationsettings.jsx'
 import LiquidDropdown from './dropdown.jsx'
 import LiquidSlider from './slider.jsx'
 import NumberInput from './numberinput.jsx'

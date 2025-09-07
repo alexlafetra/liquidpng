@@ -1,33 +1,185 @@
 import { useState,useEffect,useRef } from 'react'
 import p5 from 'p5'
-import './App.css'
+import JSZip from 'jszip'
 import FlowCanvas from './flowCanvas.js'
 import './main.css';
-import {settings,updateAnimation} from './settings.jsx'
+import {updateAnimation,noiseAlgorithms} from './settings.jsx'
+import LiquidCheckbox from './components/checkbox.jsx'
+import LiquidKeyframeSettings from './components/keyframesettings.jsx'
 // import {p5asciify} from 'p5.asciify'
+import LiquidDropdown from './components/dropdown.jsx'
+import LiquidSlider from './components/slider.jsx'
+import NumberInput from './components/numberinput.jsx'
+import LiquidMenuTab from './components/menutab.jsx'
+import LiquidTextBox from './components/textbox.jsx'
+import LiquidColorPicker from './components/colorpicker.jsx'
+import LiquidFilePicker from './components/filepicker.jsx'
+import LiquidFlowSettings from './components/flowsettings.jsx';
+import LiquidButton from './components/button.jsx';
 
-import LiquidUIContainer from './components/ui.jsx'
-import JSZip from 'jszip'
+
+
+/*
+
+okay new paradigm is:
+everything is stored in state. LiquidPNG canvas only updates once per render.
+*/
+
 
 function App() {
+  const [settings,setSettings] = useState({
+    ready: false,
+    recording : false,
+    recordingFinished : false,
+    recordedFrame : 0,
+    startInHiRes : false,
+    keyframes : {
+      active : false,
+      looping : false,
+      currentAnimation : 0,
+      currentFrame : 0,
+      keyframes : [],
+      needsToSetCanvasTo : null,
+    },
+    //flag set by the 'clear buffer' button to clear out the images added to the ZIP
+    needToClearRenderBuffer:false,
+    //set to 2.0 for HD
+    pixelDensity : 1.0,
+    hideUI : false,
+    distortionMenu : {open:false},
+    distortionPointsMenu : {open:false},
+    backgroundMenu : {open:false},
+    imageMenu : {open:true},
+    keyframeMenu : {open:false},
+    canvasMenu : {open:true},
+    imageCoordinateOverflow: 'discarding', //options are discard, tile, and extend
+    imageLink : './star.png',
+    backgroundImageLink : './test_background.MOV',
+    backgroundImage : null,
+    backgroundIsVideo:false,
+    playVideoOnKeyframes:true,
+    fontLink : 'times.ttf',
+    fontOptions : ['times.ttf','arial.ttf','CedarvilleCursive.ttf','chopin.ttf','SFMono.otf','NotoSerifTC.ttf'],
+    // options are left, right, and centered
+    textAlignment : 'left',
+    inputType : 'text', //options are text or image
+    lockTextBoundingBox: false,//false if new text being entered triggers the BB to be resized, true if it doesn't change size
+
+    mainCanvas : null,
+    srcImage : null,
+    font : null,
+    fontSize : 200,
+    displayText : "liquid.\npng",
+    centerText : true,
+    fontColor : '#ff0000',
+    canvasWidth : window.innerWidth,
+    canvasHeight : window.innerHeight,
+    fitCanvasTo:'window',
+    globalScale : 1.0,
+
+    //array for holding the flow nodes
+    //stored as x,y, magnitude (has to be a flat array, not an array of arrays)
+    // flowPoints : [
+    //     0.5,0.5,-0.5,
+    //     0.0,0.8,0.1
+    // ],
+    // flowPoints : [0,0,1],
+    flowPoints:[],
+    // usingFlowPoints : false,
+
+    animation: {
+      active:false,
+      xMotion : -2.0,
+      yMotion : 0.0
+    },
+
+    viewWindow : {
+      dragStarted : false,
+      start : {x:0,y:0},
+      end : {x:0,y:0},
+      sensitivity : 1,
+      offset : {x:window.innerWidth/2+75,y:window.innerHeight/2+100},
+      origin: {x:0,y:0}
+    },
+    noiseWindow : {
+      dragStarted : false,
+      start : {x:0,y:0},
+      end : {x:0,y:0},
+      sensitivity : 1,
+      offset : {x:0,y:0},
+      origin: {x:0,y:0}
+    },
+
+    globalNoise :{
+      amplitude:1.0,
+      scale:1.0
+    },
+    lowFNoise :{
+      active : true,
+      amplitude:1.0,
+      scale: 1.0
+    },
+    mediumFNoise:{
+      active : false,
+      amplitude:1.0,
+      scale:3.0
+    },
+    highFNoise:{
+      active : false,
+      amplitude:0.05,
+      scale:1000.0
+    },
+    perlinNoise:{
+      active:false,
+      amplitude : 0.1,
+      scale: 1.0
+    },
+
+    clampNoise:false,
+    imageScale : 1.0,
+    backgroundColor : '#0000ff',
+    gridColor : '#ff0000',
+    blurGridIntensity : 1.0,
+    //0 == clear, 1 == color, 2 == image/video, 3 == grid, 4 == blurry-grid
+    backgroundStyle : 0,
+    gridThickness : 0.001,
+    gridSize : 10,
+    fillTextWith : 'color',
+    
+    activeNoiseAlgorithm : 0,
+    //noise functions here should expose a float noise(vec2) function
+    //but can also contain other hash functions
+    noiseAlgorithms : noiseAlgorithms
+  });
+  const movingFlowPoint = useRef(false);
   const [numberOfFramesRecorded,setNumberOfFramesRecorded] = useState(0);
-  const [recording,setRecording] = useState(false);
-  const [targetFlowPoint,setTargetFlowPoint] = useState(null);
+  const [showFlowPoints,setShowFlowPoints] = useState(true);
+  const [flowPointCoordinates,setFlowPointCoordinates] = useState(null);
+  const [targetFlowPoint,setTargetFlowPoint] = useState(0);
   const targetFlowPointRef = useRef(targetFlowPoint);
   useEffect(() => {
     targetFlowPointRef.current = targetFlowPoint;
   },[targetFlowPoint]);
 
-  const [flowPointCoordinates,setFlowPointCoordinates] = useState(null);
+  const settingsRef = useRef(settings);
+  useEffect(() => {
+    settingsRef.current = settings;
+  },[settings]);
+
   const flowPointCoordinatesRef = useRef(flowPointCoordinates);
   useEffect(() => {
     flowPointCoordinatesRef.current = flowPointCoordinates;
   },[flowPointCoordinates]);
+
+  const [hidden,setHidden] = useState(settings.hideUI);
+  const [showAbout,setShowAbout] = useState(false);
+
   const containerRef = useRef();
-  const zip = new JSZip();
+  const liquidPNG = useRef(new FlowCanvas(settings));
+  const zip = useRef(new JSZip());
 
   function downloadZip(){
-    zip.generateAsync({type : 'blob' }).then((content) => {
+    zip.current.generateAsync({type : 'blob' }).then((content) => {
       const a = document.createElement('a');
       a.href = URL.createObjectURL(content);
       a.download = 'liquidpng_animation.zip';
@@ -40,7 +192,7 @@ function App() {
 
     domCanvas.toBlob((blob) => {
       const filename = 'frame_'+String(settings.recordedFrame)+'.png';
-      zip.file(filename,blob);
+      zip.current.file(filename,blob);
       if(settings.recordingFinished && settings.recording){
         settings.recording = false;
         settings.recordingFinished = false;
@@ -50,8 +202,14 @@ function App() {
       }
     })
   }
+  let sketch;
+  p5.disableFriendlyErrors;
+  useEffect(() => {
+    sketch = new p5(mainSketch,containerRef.current);
+    // sketch.disableFriendlyErrors = true;
+    return () => sketch.remove();
+  },[]);
 
-  const liquidPNG = new FlowCanvas(settings);
   let asciifier;
   let brightnessRenderer;
   let edgeRenderer;
@@ -59,111 +217,107 @@ function App() {
   //P5 sketch body
   const mainSketch = (p) =>{
 
-    settings.p5Inst = p;
-
+    // these callbacks NEED to use settingsRef, not just settings
     p.setup = async () => {
-      settings.image = await p.loadImage(settings.imageLink);
-      settings.backgroundImage = settings.image;
-      settings.font = await p.loadFont('./fonts/'+settings.fontLink);
-      settings.p5Inst.setAttributes('antialias', false);
-      const dims = liquidPNG.getCanvasDimensions();
-      settings.mainCanvas = p.createCanvas(dims.width,dims.height,p.WEBGL);
-      settings.p5Inst.pixelDensity(settings.pixelDensity);
-      settings.srcImage = p.createFramebuffer({ width: settings.image.width, height: settings.image.height, textureFiltering: p.NEAREST, format: p.FLOAT});
+      const newSettings = {...settingsRef.current};
+      newSettings.p5Inst = p;
+      newSettings.image = await p.loadImage(newSettings.imageLink);
+      newSettings.backgroundImage = newSettings.image;
+      liquidPNG.current.font = await p.loadFont('./fonts/'+newSettings.fontLink);
+      newSettings.p5Inst.setAttributes('antialias', false);
+      const dims = liquidPNG.current.getCanvasDimensions();
+      newSettings.mainCanvas = p.createCanvas(dims.width,dims.height,p.WEBGL);
+      newSettings.p5Inst.pixelDensity(newSettings.pixelDensity);
 
       //init after setup() is called so that the p5 instance, font, and main canvas can be passed into liquidPNG
-      liquidPNG.init();
+      liquidPNG.current.init(newSettings);
+
+      //render image
+      updateLiquidPNG(newSettings);
+      //disable draw loop
+      // p.noLoop();
+      //set settings to update UI
+      setSettings(newSettings);
     }
-    p.draw = () => {
-      updateAnimation(p);
-      liquidPNG.render();
-      if(settings.recording){
-        p.frameRate(1);
-        captureFrame();
-        settings.recordedFrame++;
-        //set react flags to update DOM
-        setRecording(true);
-        setNumberOfFramesRecorded(settings.recordedFrame);
-      }
-      else{
-        p.frameRate(60);
-        setRecording(false);
-        if(settings.needToClearRenderBuffer){
-          settings.needToClearRenderBuffer = false;
-          settings.recordedFrame = 0;
-          setNumberOfFramesRecorded(settings.recordedFrame);
+    p.draw = () =>{
+      if(settingsRef.current.ready){
+        if(settingsRef.current.canvasHeight !== settingsRef.current.mainCanvas.height || settingsRef.current.canvasWidth !== settingsRef.current.mainCanvas.width){
+          settingsRef.current.p5Inst.resizeCanvas(settingsRef.current.canvasWidth,settingsRef.current.canvasHeight);
         }
+        updateLiquidPNG(settingsRef.current);
       }
     }
     p.mouseReleased = () =>{
-      setTargetFlowPoint(null);
-        if(p.keyIsDown(p.SHIFT)){
-            if(settings.viewWindow.dragStarted){
-                settings.viewWindow.end = {x:p.mouseX,y:p.mouseY}
-                const dX = settings.viewWindow.end.x - settings.viewWindow.start.x;
-                const dY = settings.viewWindow.end.y - settings.viewWindow.start.y;
-                settings.viewWindow.origin.x -= dX;
-                settings.viewWindow.origin.y -= dY;
-            }
-            settings.viewWindow.dragStarted = false;
+      movingFlowPoint.current = false;
+      if(p.keyIsDown(p.SHIFT)){
+        const newSettings = {...settingsRef.current};
+        if(newSettings.viewWindow.dragStarted){
+          newSettings.viewWindow.end = {x:p.mouseX,y:p.mouseY}
+          const dX = newSettings.viewWindow.end.x - newSettings.viewWindow.start.x;
+          const dY = newSettings.viewWindow.end.y - newSettings.viewWindow.start.y;
+          newSettings.viewWindow.origin.x -= dX;
+          newSettings.viewWindow.origin.y -= dY;
         }
-        else{
-            if(settings.noiseWindow.dragStarted){
-                settings.noiseWindow.end = {x:p.mouseX,y:p.mouseY}
-                const dX = settings.noiseWindow.end.x - settings.noiseWindow.start.x;
-                const dY = settings.noiseWindow.end.y - settings.noiseWindow.start.y;
-                settings.noiseWindow.origin.x -= dX;
-                settings.noiseWindow.origin.y -= dY;
-            }
-            settings.noiseWindow.dragStarted = false;
+        newSettings.viewWindow.dragStarted = false;
+        setSettings(newSettings);
+      }
+      else{
+        const newSettings = {...settingsRef.current};
+        if(newSettings.noiseWindow.dragStarted){
+          newSettings.noiseWindow.end = {x:p.mouseX,y:p.mouseY}
+          const dX = newSettings.noiseWindow.end.x - newSettings.noiseWindow.start.x;
+          const dY = newSettings.noiseWindow.end.y - newSettings.noiseWindow.start.y;
+          newSettings.noiseWindow.origin.x -= dX;
+          newSettings.noiseWindow.origin.y -= dY;
         }
-    }
-    p.mouseWheel = (e) => {
-      if(targetFlowPointRef.current !== null){
-        console.log(e);
-        settings.flowPoints[targetFlowPointRef.current*3+2]++;
-        setFlowPointCoordinates({x:p.mouseX/window.innerWidth,y:p.mouseY/window.innerHeight});
+        newSettings.noiseWindow.dragStarted = false;
+        setSettings(newSettings);
       }
     }
     p.mouseDragged = () =>{
-      if(targetFlowPointRef.current !== null){
-        settings.flowPoints[targetFlowPointRef.current] = p.mouseX/window.innerWidth;
-        settings.flowPoints[targetFlowPointRef.current+1] = p.mouseY/window.innerHeight;
+      if(movingFlowPoint.current){
+        const newSettings = {...settingsRef.current};
+        newSettings.flowPoints[targetFlowPointRef.current] = p.mouseX/window.innerWidth;
+        newSettings.flowPoints[targetFlowPointRef.current+1] = p.mouseY/window.innerHeight;
+        setSettings(newSettings);
         setFlowPointCoordinates({x:p.mouseX/window.innerWidth,y:p.mouseY/window.innerHeight});
       }
-        if(p.mouseX < settings.mainCanvas.width && p.mouseY < settings.mainCanvas.height && p.mouseX > 0 && p.mouseY > 0){
-            if(p.keyIsDown(p.SHIFT)){
-                if(!settings.viewWindow.dragStarted){
-                    settings.viewWindow.dragStarted = true;
-                    settings.viewWindow.start = {x:p.mouseX,y:p.mouseY};
-                }
-                else{
-                    settings.viewWindow.end = {x:p.mouseX,y:p.mouseY}
-                    const dX = settings.viewWindow.end.x - settings.viewWindow.start.x;
-                    const dY = settings.viewWindow.end.y - settings.viewWindow.start.y;
-                    settings.viewWindow.offset.x = -dX + settings.viewWindow.origin.x;
-                    settings.viewWindow.offset.y = -dY+ settings.viewWindow.origin.y;
-                }
-                // liquidPNG.loadText("two touches"); 
+      else{
+        if(p.mouseX < settingsRef.current.mainCanvas.width && p.mouseY < settingsRef.current.mainCanvas.height && p.mouseX > 0 && p.mouseY > 0){
+          const newSettings = {...settingsRef.current};
+          if(p.keyIsDown(p.SHIFT)){
+            if(!newSettings.viewWindow.dragStarted){
+              newSettings.viewWindow.dragStarted = true;
+              newSettings.viewWindow.start = {x:p.mouseX,y:p.mouseY};
             }
             else{
-                if(!settings.noiseWindow.dragStarted){
-                    settings.noiseWindow.dragStarted = true;
-                    settings.noiseWindow.start = {x:p.mouseX,y:p.mouseY};
-                }
-                else{
-                    settings.noiseWindow.end = {x:p.mouseX,y:p.mouseY}
-                    const dX = settings.noiseWindow.end.x - settings.noiseWindow.start.x;
-                    const dY = settings.noiseWindow.end.y - settings.noiseWindow.start.y;
-                    settings.noiseWindow.offset.x = -dX + settings.noiseWindow.origin.x;
-                    settings.noiseWindow.offset.y = -dY+ settings.noiseWindow.origin.y;
-                }
+              newSettings.viewWindow.end = {x:p.mouseX,y:p.mouseY}
+              const dX = newSettings.viewWindow.end.x - newSettings.viewWindow.start.x;
+              const dY = newSettings.viewWindow.end.y - newSettings.viewWindow.start.y;
+              newSettings.viewWindow.offset.x = -dX + newSettings.viewWindow.origin.x;
+              newSettings.viewWindow.offset.y = -dY+ newSettings.viewWindow.origin.y;
             }
+          }
+          else{
+            if(!newSettings.noiseWindow.dragStarted){
+                newSettings.noiseWindow.dragStarted = true;
+                newSettings.noiseWindow.start = {x:p.mouseX,y:p.mouseY};
+            }
+            else{
+                newSettings.noiseWindow.end = {x:p.mouseX,y:p.mouseY}
+                const dX = newSettings.noiseWindow.end.x - newSettings.noiseWindow.start.x;
+                const dY = newSettings.noiseWindow.end.y - newSettings.noiseWindow.start.y;
+                newSettings.noiseWindow.offset.x = -dX + newSettings.noiseWindow.origin.x;
+                newSettings.noiseWindow.offset.y = -dY+ newSettings.noiseWindow.origin.y;
+            }
+          }
+          setSettings(newSettings);
         }
+      }
     }
     p.windowResized = (e) => {
-      if(settings.fitCanvasTo == 'window')
-        p.resizeCanvas(window.innerWidth,window.innerHeight);
+      if(settingsRef.current.fitCanvasTo == 'window')
+        setSettings({...settingsRef.current,canvasWidth:window.innerWidth,canvasHeight:window.innerHeight});
     }
 
     // Called automatically after p5.js `setup()`
@@ -218,28 +372,209 @@ function App() {
       p.remove();
     }
   }
-  
-  useEffect(() => {
-    let sketch = new p5(mainSketch,containerRef.current);
-    return () => sketch.remove();
-  },[]);
+
+  const loadTargetImageFromFileURL = async (e) => {
+      //make sure there's a file here
+      if(e.target.files.length > 0){
+
+          const file = e.target.files[0];
+          const isVideo = file.type.startsWith('video/');
+          const isImage = file.type.startsWith('image/');
+          let fName = e.target.value.split('C:\\fakepath\\')[1];
+          if(fName.length>10){
+              fName = fName.slice(0,10)+'...'+fName.slice(-4);
+          }
+          
+          if(isImage){
+              //create a file reader object
+              const reader = new FileReader();
+              //attach a callback for when the FR is done opening the img
+              reader.onload = async (e) => {
+                  //using p5's loadImage()
+                  const newImg = await settings.p5Inst.loadImage(reader.result);
+                  setSettings({...settings,image:newImg});
+                  liquidPNG.current.needsToReloadImage = true;
+              };
+              reader.readAsDataURL(file);
+          }
+          else if(isVideo){
+              const videoURL = URL.createObjectURL(file);
+              const vid = settings.p5Inst.createVideo([videoURL]);
+              vid.hide();
+              vid.volume(0);
+              vid.loop();
+              vid.elt.onloadedmetadata = () => {
+                  setSettings({...settings,image:vid});
+                  liquidPNG.current.needsToReloadImage = true;
+              }
+          }
+      }
+  }
+
+  const loadBackgroundImageFromFileURL = async (e) => {
+      //make sure there's a file here
+      if(e.target.files.length > 0){
+
+          const file = e.target.files[0];
+          const isVideo = file.type.startsWith('video/');
+          const isImage = file.type.startsWith('image/');
+          let fName = e.target.value.split('C:\\fakepath\\')[1];
+          if(fName.length>10){
+              fName = fName.slice(0,10)+'...'+fName.slice(-4);
+          }
+          
+          if(isImage){
+              //create a file reader object
+              const reader = new FileReader();
+              //attach a callback for when the FR is done opening the img
+              reader.onload = async (e) => {
+                  //using p5's loadImage()
+                  const newImg = await settings.p5Inst.loadImage(reader.result);
+                  setSettings({...settings,backgroundImage:newImg});
+                  liquidPNG.current.needsToReloadImage = true;
+              };
+              reader.readAsDataURL(file);
+          }
+          else if(isVideo){
+              const videoURL = URL.createObjectURL(file);
+              const vid = settings.p5Inst.createVideo([videoURL]);
+              vid.hide();
+              vid.volume(0);
+              vid.loop();
+              vid.elt.onloadedmetadata = () => {
+                  setSettings({...settings,backgroundImage:vid});
+                  liquidPNG.current.needsToReloadImage = true;
+              }
+          }
+      }
+  }
+  function getDimensions(type){
+    switch(type){
+        case 'custom dimensions':
+            {
+            let w,h;
+            //if window is landscape, max image dimension will be height
+            if(window.innerWidth > window.innerHeight){
+                h = window.innerHeight;
+                w = settings.canvasWidth/settings.canvasHeight * h;
+            }
+            else{
+                w = window.innerWidth;
+                h = settings.canvasHeight/settings.canvasWidth * w;
+            }
+            return {width:w,height:h};
+            }
+        case 'background image':
+            if(settings.backgroundImage !== undefined){
+              return {width:settings.backgroundImage.width,height:settings.backgroundImage.height};
+            }
+            else{
+              return {width:settings.canvasWidth,height:settings.canvasHeight};
+            }
+        case 'window':
+            return {width:window.innerWidth,height:window.innerHeight};
+    }
+  }
+
+
+  function updateLiquidPNG(s){
+    // updateAnimation(p,s);
+    setSettings(liquidPNG.current.render(s));
+    // if(s.recording){
+    //   p.frameRate(1);
+    //   captureFrame();
+    //   s.recordedFrame++;
+    //   //set react flags to update DOMs
+    //   setRecording(true);
+    //   setNumberOfFramesRecorded(s.recordedFrame);
+    // }
+    // else{
+    //   p.frameRate(60);
+    //   setRecording(false);
+    //   if(s.needToClearRenderBuffer){
+    //     s.needToClearRenderBuffer = false;
+    //     s.recordedFrame = 0;
+    //     setNumberOfFramesRecorded(s.recordedFrame);
+    //   }
+    // }
+    // setSettings(s);
+    // p.redraw();
+  }
+
+  const aboutChildren = (
+    <div className = "description_container">
+              <div className = "description_text">
+              This is a small tool for distorting visual data and typography using digital noise algorithms
+              {/* <br></br>
+              <br></br>
+              The current technological paradigm holds that data is intangible, inorganic, and static. And yet,
+              living our lives through and with data we know that digital data can be liquid, corruptible, and weird. */}
+              <br></br>
+              <br></br>
+              Created by <a href = "https://www.instagram.com/alexlafetra/">alex lafetra</a><br></br>
+              <a href = "https://github.com/alexlafetra/liquidpng">github/contribute</a>
+              </div>
+              <img src = "leaf.png" className = "example_image"></img>
+    </div>
+  )
+
+  const canvasSettingsChildren = (
+      <>
+      <LiquidDropdown label = "fit canvas to " callback = {(val) => {const newDims = getDimensions(val);setSettings({...settings,fitCanvasTo:val,canvasWidth:newDims.width,canvasHeight:newDims.height})}} options = {['custom dimensions','window','background image']} value = {settings.fitCanvasTo}></LiquidDropdown>
+      {(settings.fitCanvasTo == 'custom dimensions') && 
+      <div style = {{display:'flex',gap:'10px'}}>
+          <NumberInput name = "width: " value = {settings.canvasWidth} min = {1} max = {window.innerWidth} callback = {(val) => {setSettings({...settings,canvasWidth:val})}}></NumberInput>
+          <NumberInput name = "height: " value = {settings.canvasHeight} min = {1} max = {window.innerHeight} callback = {(val) => {setSettings({...settings,canvasHeight:val})}}></NumberInput>
+      </div>
+      }
+      <LiquidSlider callback = {(val) => {const newPixDensity = parseFloat(val);setSettings({...settings,pixelDensity: newPixDensity});settings.p5Inst.pixelDensity(newPixDensity);}} label = {"pixel density: "} min = {"0.01"} max = {"5.0"} stepsize = {"0.01"} defaultValue = {settings.pixelDensity}/>
+      </>
+  );
+
+
+
+  const imageSettingsChildren = (
+    <>
+      <LiquidDropdown label = "warping " callback = {(val) => {setSettings({...settings,inputType:val});liquidPNG.current.needsToReloadImage = true;}} options = {['image','text']} value = {settings.inputType}></LiquidDropdown>
+      <LiquidSlider callback = {(val) => {setSettings({...settings,imageScale: val});}} label = {settings.inputType + " scale: "} min = {"0.01"} max = {"4.0"} stepsize = {"0.01"} defaultValue = {settings.imageScale}/>
+      <LiquidDropdown callback = {(val) => {setSettings({...settings,imageCoordinateOverflow: val});}} label = 'handle edges by ' options = {['extending','tiling','discarding']} value = {settings.imageCoordinateOverflow}></LiquidDropdown>
+      {settings.inputType === 'image' &&
+        <LiquidFilePicker callback = {loadTargetImageFromFileURL} value = {'[upload an image]'}></LiquidFilePicker>
+      }
+      {settings.inputType === 'text' &&
+      <>
+        <LiquidTextBox className = "text_input_box" placeholderText = {settings.displayText} callback = {(event) => {setSettings({...settings,displayText: event.target.value});liquidPNG.current.currentText = event.target.value;liquidPNG.current.needsToReloadImage = true;}}></LiquidTextBox>
+        <LiquidCheckbox title = {'lock bounding box'} state={settings.lockTextBoundingBox} callback = {(val) => {setSettings({...settings,lockTextBoundingBox: !settings.lockTextBoundingBox});}}></LiquidCheckbox>
+        <LiquidDropdown label = 'font: ' callback = {async (val) => {liquidPNG.current.font = await settings.p5Inst.loadFont('./fonts/'+val);liquidPNG.current.needsToReloadImage = true;setSettings({...settings,fontLink: val});}} options = {settings.fontOptions} value = {settings.fontLink}></LiquidDropdown>
+        <LiquidSlider callback = {(val) => {setSettings({...settings,fontSize: parseInt(val)});liquidPNG.current.needsToReloadImage = true;}} label = {"font resolution: "} min = {"1"} max = {"400"} stepsize = {"1"} defaultValue = {settings.fontSize}/>
+        <LiquidDropdown label = 'align to the ' callback = {(val) => {setSettings({...settings,textAlignment:val});liquidPNG.current.needsToReloadImage = true;}} options = {['left','center','right']} value = {settings.textAlignment}></LiquidDropdown>
+        <LiquidDropdown callback = {(val) => {setSettings({...settings,fillTextWith: val});}} label = 'fill text with: ' options = {['color','background image']} value = {settings.fillTextWith}></LiquidDropdown>
+        <LiquidColorPicker callback = {(val) => {setSettings({...settings,fontColor:val});}} defaultValue = {settings.fontColor} label = {"text color"}></LiquidColorPicker>
+      </>
+      }
+    </>
+  );
 
   function flowPointDivs(settings){
+    if(!settings.ready)
+      return;
     const children = [];
     for(let i = 0; i<settings.flowPoints.length; i+=3){
-      const size = Math.abs(settings.flowPoints[i+2]*200);
-      const coords = {x:settings.flowPoints[i]*window.innerWidth - size/2,y:settings.flowPoints[i+1]*window.innerHeight - size/2};
-      // if(flowPointCoordinatesRef.current !== null){
-      //   coords.x = flowPointCoordinates.x - size/2;
-      //   coords.y = flowPointCoordinates.y - size/2;
-      // }
+      const size = Math.abs(settings.flowPoints[i+2]*600);
+      const coords = {x:settings.flowPoints[i]*settings.canvasWidth - size/2,y:settings.flowPoints[i+1]*settings.canvasHeight - size/2};
+      const red = settings.p5Inst.map(settings.flowPoints[i+2],-0.2,0.2,0,255);
+      const green = 0;
+      const blue = settings.p5Inst.map(settings.flowPoints[i+2],-0.2,0.2,255,0);
+      const color = '#'+parseInt(red,10).toString(16)+'00'+parseInt(blue,10).toString(16);
+      // settings.p5Inst.colorMode(settings.p5Inst.HSB,255);
+      // settings.p5Inst.colorMode(settings.p5Inst.RGB,255);
       const style = {
         position:'absolute',
         left:coords.x,
         top:coords.y,
         width:size,
         height:size,
-        backgroundColor:'transparent',
+        backgroundColor:color,
         zIndex : 5,
         borderRadius : size/2,
         border : 'dashed 1px black',
@@ -247,10 +582,11 @@ function App() {
         animation:'flowPoint 0.5s infinite'
       }
       const clickCallback = (e) => {
+        movingFlowPoint.current = true;
         setTargetFlowPoint(i);
       }
       const unclickCallback = (e) => {
-        setTargetFlowPoint(null);
+        movingFlowPoint.current = false;
       }
       children.push(
         <div key = {i} onMouseUp = {unclickCallback} onMouseDown = {clickCallback} style = {style}></div>
@@ -259,17 +595,162 @@ function App() {
     return children;
   }
 
+  function distortionPointsChildren(){
+    const newCallback = () =>{
+      const newFPs = settingsRef.current.flowPoints;
+      newFPs.push(0.5,0.5,0.1);
+      setSettings({...settingsRef.current,flowPoints:newFPs});
+      liquidPNG.current.updateShaders = true;
+    }
+    const children = [];
+    children.push(<div key = {-3} style = {{display:'flex'}}>
+    <LiquidButton key = {-2} callback = {newCallback} title = {'new'}></LiquidButton>
+    {settings.flowPoints.length > 0 &&
+      <LiquidButton key = {-1} callback = {() => {
+        const newFPs = [];
+        for(let i = 0; i<settings.flowPoints.length; i+=3){
+          if(i != targetFlowPoint){
+            newFPs.push(settingsRef.current.flowPoints[i],settingsRef.current.flowPoints[i+1],settingsRef.current.flowPoints[i+2]);
+          }
+        }
+        liquidPNG.current.updateShaders = true;
+        setSettings({...settingsRef.current,flowPoints:newFPs});
+        setTargetFlowPoint(Math.max(0,newFPs.length-3));
+      }} title = {'delete'}></LiquidButton>
+    }
+    <LiquidCheckbox title = {showFlowPoints?' hide':' show'} key = {-4} state = {showFlowPoints} callback = {() => {setShowFlowPoints(!showFlowPoints);}}></LiquidCheckbox>
+    </div>)
+    for(let i = 0; i<settings.flowPoints.length; i+=3){
+      const style = {
+        width: "100px",
+        backgroundColor:(i==targetFlowPointRef.current)?"blue":"red"
+      }
+      children.push(
+        <LiquidSlider key = {i+1} callback = {(val) => {const newFPs = settingsRef.current.flowPoints; newFPs[i+2] = val; setSettings({...settingsRef.current,flowPoints:newFPs});}} label = {((i==targetFlowPoint)?">":"")} min = '-0.2' max = "0.2" stepsize = '0.001' defaultValue = {settingsRef.current.flowPoints[i+2]}></LiquidSlider>
+      )
+    }
+    return (<div>{children}</div>);
+  }
+
+  const distortionSettingsChildren = (
+    <>
+    {/* <LiquidDropdown label = {"algorithm: "} callback = {(val) => {setSettings({...settings,activeNoiseAlgorithm: val});liquidPNG.current.flowFieldShader = liquidPNG.current.createFlowFieldShader();}} options = {Array.from({length:settings.noiseAlgorithms.length},(v,k) => k)} value = {'1'}></LiquidDropdown> */}
+    <LiquidCheckbox title = {'scroll thru'} state={settings.animation.active} callback = {(val) => {setSettings({...settings,animation:{...settings.animation,active:!settings.animation.active}})}}></LiquidCheckbox>
+    {settings.animation.active && 
+        <div className = "flow_slider_container">
+        <LiquidSlider callback = {(val) => {setSettings({...settings,animation:{...settings.animation,xMotion : parseFloat(val)}});}} label = {"x: "} min = {-10.0} max = {10.0} stepsize = {1} defaultValue = {settings.animation.xMotion}/>
+        <LiquidSlider callback = {(val) => {setSettings({...settings,animation:{...settings.animation,yMotion : parseFloat(val)}});}} label = {"y: "} min = {-10.0} max = {10.0} stepsize = {1} defaultValue = {settings.animation.yMotion}/>
+        </div>
+    }
+    <LiquidFlowSettings title = {"flow"} active = {settings.lowFNoise.active} amplitudeSliderSettings = {{min:0.0,max:5.0,stepsize:0.001,default:settings.lowFNoise.amplitude}} scaleSliderSettings = {{min:0.0,max:2.5,stepsize:0.001,default:settings.lowFNoise.scale}} noiseSettings = {settings.lowFNoise} onOffCallback = {(val) => {setSettings({...settings,lowFNoise:{...settings.lowFNoise,active:!settings.lowFNoise.active}})}} amplitudeCallback={(val) => {setSettings({...settings,lowFNoise:{...settings.lowFNoise,amplitude:val}});}} scaleCallback={(val) => {setSettings({...settings,lowFNoise:{...settings.lowFNoise,scale:val}});}}></LiquidFlowSettings>
+    <LiquidFlowSettings title = {"warp"} active={settings.mediumFNoise.active} amplitudeSliderSettings = {{min:0.0,max:5.0,stepsize:0.001,default:settings.mediumFNoise.amplitude}} scaleSliderSettings = {{min:0.0,max:5.0,stepsize:0.001,default:settings.mediumFNoise.scale}} noiseSettings = {settings.mediumFNoise} onOffCallback = {(val) => {setSettings({...settings,mediumFNoise:{...settings.mediumFNoise,active:!settings.mediumFNoise.active}})}} amplitudeCallback={(val) => {setSettings({...settings,mediumFNoise:{...settings.mediumFNoise,amplitude:val}});}} scaleCallback={(val) => {setSettings({...settings,mediumFNoise:{...settings.mediumFNoise,scale:val}});}}></LiquidFlowSettings>
+    <LiquidFlowSettings title = {"ripple"} active={settings.perlinNoise.active} amplitudeSliderSettings = {{min:0.0,max:1.0,stepsize:0.001,default:settings.perlinNoise.amplitude}} scaleSliderSettings = {{min:0.0,max:5.0,stepsize:0.001,default:settings.perlinNoise.scale}} noiseSettings = {settings.perlinNoise} onOffCallback = {(val) => {setSettings({...settings,perlinNoise:{...settings.perlinNoise,active:!settings.perlinNoise.active}})}} amplitudeCallback={(val) => {setSettings({...settings,perlinNoise:{...settings.perlinNoise,amplitude:val}});}} scaleCallback={(val) => {setSettings({...settings,perlinNoise:{...settings.perlinNoise,scale:val}});}}></LiquidFlowSettings>
+    <LiquidFlowSettings title = {"dust"} active={settings.highFNoise.active} amplitudeSliderSettings = {{min:0.0,max:1.0,stepsize:0.001,default:settings.highFNoise.amplitude}} scaleSliderSettings = {{min:10.0,max:1000.0,stepsize:1.0,default:settings.highFNoise.scale}} noiseSettings = {settings.highFNoise} onOffCallback = {(val) => {setSettings({...settings,highFNoise:{...settings.highFNoise,active:!settings.highFNoise.active}})}} amplitudeCallback={(val) => {setSettings({...settings,highFNoise:{...settings.highFNoise,amplitude:val}});}} scaleCallback={(val) => {setSettings({...settings,highFNoise:{...settings.highFNoise,scale:val}});}}></LiquidFlowSettings>
+    </>
+  )
+
+  function backgroundSettingsChildren(){
+    const options = ["transparency","color","image/video","grid","blur"];
+    const callback = (val) => {
+      let bg = 0;
+      switch(val){
+        case "transparency":
+              bg = 0;
+              break;
+          case "color":
+              bg = 1;
+              break;
+          case "image/video":
+              bg = 2;
+              break;
+          case "grid":
+              bg = 3;
+              break;
+          case "blur":
+              bg = 4;
+              break;
+        }
+        setSettings({...settingsRef.current,backgroundStyle:bg});
+    }
+    const children = (
+      <>
+      <LiquidDropdown label = {"background is a "} callback = {callback} options = {options}  value = {options[settings.backgroundStyle]} ></LiquidDropdown>
+      {/* solid color */}
+      {settings.backgroundStyle === 1 &&
+        <LiquidColorPicker callback = {(val) => {setSettings({...settings,backgroundColor:val})}} defaultValue = {settings.backgroundColor}></LiquidColorPicker>
+      }
+      {/* image/video */}
+      {settings.backgroundStyle === 2 &&
+      <>
+        <LiquidFilePicker callback = {loadBackgroundImageFromFileURL} value = {'[background image/video]'}></LiquidFilePicker>
+        {/* <LiquidCheckbox title = {'play with keyframes'} setTitleInsideBrackets = {false} callback = {(val) => {settings.backgroundImage}}></LiquidCheckbox> */}
+      </>
+      }
+      {/* grid */}
+      {settings.backgroundStyle === 3 &&
+      <>
+        <LiquidColorPicker callback = {(val) => {setSettings({...settings,gridColor : val});}} defaultValue = {'#ff0000'} label = {"line"}></LiquidColorPicker>
+        <LiquidColorPicker callback = {(val) => {setSettings({...settings,backgroundColor : val});}} defaultValue = {'#0000ff'} label = {"background"}></LiquidColorPicker>
+        <br></br>
+        <LiquidSlider callback = {(val) => {setSettings({...settings,gridThickness: val})}} label = {"thickness "} min = {"0.0"} max = {"0.05"} stepsize = {"0.001"} defaultValue = {settings.gridThickness}/>
+        <LiquidSlider callback = {(val) => {setSettings({...settings,gridSize: val})}} label = {"resolution "} min = {"0.0"} max = {"100.0"} stepsize = {"1.0"} defaultValue = {settings.gridSize}/>
+      </>
+      }
+      {settings.backgroundStyle === 4 &&
+        <>
+          <LiquidColorPicker callback = {(val) => {setSettings({...settings,gridColor : val});}} defaultValue = {'#ff0000'} label = {"line"}></LiquidColorPicker>
+          <LiquidColorPicker callback = {(val) => {setSettings({...settings,backgroundColor : val});}} defaultValue = {'#0000ff'} label = {"background"}></LiquidColorPicker>
+          <br></br>
+          <LiquidSlider callback = {(val) => {setSettings({...settings,blurGridIntensity : val});}} label = {"thickness "} min = {"0.0"} max = {"10.0"} stepsize = {"0.001"} defaultValue = {settings.blurGridIntensity}/>
+          <LiquidSlider callback = {(val) => {setSettings({...settings,gridSize : val});}} label = {"resolution "} min = {"0.0"} max = {"100.0"} stepsize = {"1.0"} defaultValue = {settings.gridSize}/>
+        </>
+      }
+      </>
+    );
+    return children;
+  }
+
+  //if init correctly
+  // if(settings.ready){
+  //   //update canvas size (this happens instantly because it's p5, unlike react state changes!)
+    // if(settings.canvasHeight !== settings.mainCanvas.height || settings.canvasWidth !== settings.mainCanvas.width){
+    //   settings.p5Inst.resizeCanvas(settings.canvasWidth,settings.canvasHeight);
+    // }
+  //   //update the sim
+  //   updateLiquidPNG(settings);
+  // }
+
   return (
     <div className = "app_container">
       <div style = {{position:'absolute',width:'100%',left:'0px',top:'0px'}}>
         <main></main>
       </div>
       {/* holds the sketch */}
-      {recording &&
+      {settings.recording &&
         <div style = {{position:'absolute',right:'20px',color:'#000000',fontSize:'20pt'}}>{'recording frame '+numberOfFramesRecorded}</div>
       }
-      {flowPointDivs(settings)}
-      <LiquidUIContainer liquidPNGInstance={liquidPNG} settings = {settings}></LiquidUIContainer>
+      {showFlowPoints && flowPointDivs(settings)}
+      <div className = "ui_container" style = {{backgroundColor : 'transparent'}}>
+        {!hidden &&
+        <span className = "title">liquid.png</span>
+        }
+        <LiquidCheckbox title = {"ui"}  state={hidden} callback = {(val) => {setHidden(!hidden)}}></LiquidCheckbox>
+        {!hidden &&
+          <>
+          <LiquidButton title = 'save img' callback = {() => {settings.p5Inst.saveCanvas();}}></LiquidButton>
+          <LiquidCheckbox title = {'about'} setTitleInsideBrackets = {true}  state = {showAbout} callback = {(e) => {setShowAbout(!showAbout);}}></LiquidCheckbox>
+          {showAbout && aboutChildren}
+          {/* canvas settings */}
+          <LiquidMenuTab title = "canvas" background = {'#ff72b1ff'}defaultState = {settings.canvasMenu.open} children = {canvasSettingsChildren}></LiquidMenuTab>
+          {/* image settings */}
+          <LiquidMenuTab title = {settings.inputType} background = {'#ff0088ff'} defaultState = {settings.imageMenu.open} children = {imageSettingsChildren}></LiquidMenuTab>
+          <LiquidMenuTab title = "distortion points" background = {'#00a2adff'} defaultState = {settings.distortionPointsMenu.open} children = {distortionPointsChildren()}></LiquidMenuTab>
+          <LiquidMenuTab title = "distortion fields" background = {'#009dffff'}defaultState = {settings.distortionMenu.open} children = {distortionSettingsChildren}></LiquidMenuTab>
+          <LiquidMenuTab title = "background" background = {'#009dffff'}defaultState = {settings.backgroundMenu.open} children = {backgroundSettingsChildren()}></LiquidMenuTab>
+          <LiquidKeyframeSettings settings = {settings} liquidPNGInstance={liquidPNG.current}></LiquidKeyframeSettings>
+          </>
+        }
+      </div>
     </div>
   )
 }

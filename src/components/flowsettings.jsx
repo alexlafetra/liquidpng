@@ -2,28 +2,19 @@ import { useState } from 'react'
 import LiquidSlider from './slider.jsx'
 import LiquidCheckbox from './checkbox.jsx'
 
-function LiquidFlowSettings({title,noiseSettings,amplitudeSliderSettings,scaleSliderSettings,amplitudeCallback,scaleCallback}){
-    const [active,setActive] = useState(noiseSettings.active);
-    if(active){
-        return(
-            <div className = "liquid_ui_component">
-            <>
-            <LiquidCheckbox title = {title} defaultState={active} callback = {(val) => {noiseSettings.active = val;setActive(val);}}></LiquidCheckbox>
+function LiquidFlowSettings({active,title,noiseSettings,amplitudeSliderSettings,scaleSliderSettings,amplitudeCallback,scaleCallback,onOffCallback}){
+    return(
+        <div className = "liquid_ui_component">
+        <>
+        <LiquidCheckbox title = {title} state={active} callback = {onOffCallback}></LiquidCheckbox>
+        {active &&
             <div className = "flow_slider_container">
                 <LiquidSlider className = "flow_slider"  callback = {amplitudeCallback} label = {"amplitude"} min = {amplitudeSliderSettings.min} max = {amplitudeSliderSettings.max} stepsize = {amplitudeSliderSettings.stepsize} defaultValue = {amplitudeSliderSettings.default}/>
                 <LiquidSlider className = "flow_slider"  callback = {scaleCallback} label = {"scale"} min = {scaleSliderSettings.min} max = {scaleSliderSettings.max} stepsize = {scaleSliderSettings.stepsize} defaultValue = {scaleSliderSettings.default}/>
             </div>
-            </>
-            </div>
-        )
-    }
-    else{
-        return(
-            <>
-            <LiquidCheckbox title = {title} defaultState={active} callback = {(val) => {noiseSettings.active = val;setActive(val);}}></LiquidCheckbox>
-            </>
-        );
-
-    }
+        }
+        </>
+        </div>
+    )
 }
 export default LiquidFlowSettings;

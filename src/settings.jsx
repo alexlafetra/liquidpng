@@ -59,6 +59,7 @@ float noise(vec2 v){
     return 130.0 * dot(m, g);
 }`
 ];
+
 function easeInOutSine(t) {
     return -0.5 * (Math.cos(Math.PI * t) - 1);
 }

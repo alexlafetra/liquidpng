@@ -3,9 +3,9 @@ import p5 from 'p5'
 import JSZip from 'jszip'
 import FlowCanvas from './flowCanvas.js'
 import './main.css';
-import {updateAnimation,noiseAlgorithms} from './settings.jsx'
+import {noiseAlgorithms} from './settings.jsx'
+import { saveAs } from 'file-saver'
 import LiquidCheckbox from './components/checkbox.jsx'
-import LiquidKeyframeSettings from './components/keyframesettings.jsx'
 // import {p5asciify} from 'p5.asciify'
 import LiquidDropdown from './components/dropdown.jsx'
 import LiquidSlider from './components/slider.jsx'
@@ -16,6 +16,7 @@ import LiquidColorPicker from './components/colorpicker.jsx'
 import LiquidFilePicker from './components/filepicker.jsx'
 import LiquidFlowSettings from './components/flowsettings.jsx';
 import LiquidButton from './components/button.jsx';
+
 
 
 
@@ -85,7 +86,6 @@ function App() {
     // ],
     // flowPoints : [0,0,1],
     flowPoints:[],
-    // usingFlowPoints : false,
 
     animation: {
       active:false,
@@ -478,8 +478,11 @@ function App() {
 
 
   function updateLiquidPNG(s){
-    // updateAnimation(p,s);
-    setSettings(liquidPNG.current.render(s));
+    if(s.keyframes.active){
+      s = updateKeyframes();
+      setSettings(s);
+    }
+    liquidPNG.current.render(s);
     // if(s.recording){
     //   p.frameRate(1);
     //   captureFrame();
@@ -709,6 +712,301 @@ function App() {
     );
     return children;
   }
+  const getSettingsFromKeyframe = (activeKf,index) => {
+    return {
+      ...settingsRef.current,
+      keyframes : {...settingsRef.current.keyframes,currentAnimation:index},
+      fontSize:activeKf.fontSize,
+      displayText : activeKf.displayText,
+      fontColor : activeKf.fontColor,
+      viewWindow : {
+          offset : {x:activeKf.viewWindow.offset.x,y:activeKf.viewWindow.offset.y},
+          origin: {x:activeKf.viewWindow.origin.x,y:activeKf.viewWindow.origin.y},
+      },
+      noiseWindow : {
+          offset : {x:activeKf.noiseWindow.offset.x,y:activeKf.noiseWindow.offset.y},
+          origin: {x:activeKf.noiseWindow.origin.x,y:activeKf.noiseWindow.origin.y},
+      },
+      globalNoise :{
+          amplitude:1.0,
+          scale:1.0
+      },
+      lowFNoise :{
+          active : activeKf.lowFNoise.active,
+          amplitude:activeKf.lowFNoise.amplitude,
+          scale: activeKf.lowFNoise.scale
+      },
+      mediumFNoise:{
+          active : activeKf.mediumFNoise.active,
+          amplitude: activeKf.mediumFNoise.amplitude,
+          scale: activeKf.mediumFNoise.scale
+      },
+      highFNoise:{
+          active : activeKf.highFNoise.active,
+          amplitude: activeKf.highFNoise.amplitude,
+          scale: activeKf.highFNoise.scale
+      },
+      perlinNoise:{
+          active:activeKf.perlinNoise.active,
+          amplitude: activeKf.perlinNoise.amplitude,
+          scale: activeKf.perlinNoise.scale
+      },
+      imageScale : activeKf.imageScale,
+      backgroundColor : activeKf.backgroundColor,
+      gridColor : activeKf.gridColor,
+      blurGridIntensity : activeKf.blurGridIntensity,
+      gridThickness : activeKf.gridThickness,
+      gridSize : activeKf.gridSize,
+      flowPoints : [...activeKf.flowPoints]
+    };
+  }
+  const interpolateBetweenKeyframes = (frameA,frameB,amount) => {
+    const p = settingsRef.current.p5Inst;
+    const newFps = [];
+    for(let i = 0; i<Math.max(frameA.flowPoints.length,frameB.flowPoints.length); i+=3){
+      let A,B;
+      if(i >= frameA.flowPoints.length){
+        A = [frameB[i],frameB[i+1],0];
+      }
+      else{
+        A = [frameA[i],frameA[i+1],frameA[i+2]];
+      }
+      if(i >= frameB.flowPoints.length){
+        B = [frameA[i],frameA[i+1],0];
+      }
+      else{
+        B = [frameB[i],frameB[i+1],frameB[i+2]];
+      }
+      newFps.push(p.lerp(A[0],B[0],amount),p.lerp(A[1],B[1],amount),p.lerp(A[2],B[2],amount));
+    }
+
+    return {...frameA,
+      fontSize : p.lerp(frameA.fontSize,frameB.fontSize,amount),
+      viewWindow : {
+          offset : {x:p.lerp(frameA.viewWindow.offset.x,frameB.viewWindow.offset.x,amount),y:p.lerp(frameA.viewWindow.offset.y,frameB.viewWindow.offset.y,amount)},
+          origin : {x:p.lerp(frameA.viewWindow.origin.x,frameB.viewWindow.origin.x,amount),y:p.lerp(frameA.viewWindow.origin.y,frameB.viewWindow.origin.y,amount)},
+      },
+      noiseWindow : {
+          offset : {x:p.lerp(frameA.noiseWindow.offset.x,frameB.noiseWindow.offset.x,amount),y:p.lerp(frameA.noiseWindow.offset.y,frameB.noiseWindow.offset.y,amount)},
+          origin : {x:p.lerp(frameA.noiseWindow.origin.x,frameB.noiseWindow.origin.x,amount),y:p.lerp(frameA.noiseWindow.origin.y,frameB.noiseWindow.origin.y,amount)},
+      },
+      lowFNoise : {
+        active : frameA.lowFNoise.active,
+        amplitude : p.lerp(frameA.lowFNoise.active?frameA.lowFNoise.amplitude:0,frameB.lowFNoise.active?frameB.lowFNoise.amplitude:0,amount),
+        scale : p.lerp(frameA.lowFNoise.scale,frameB.lowFNoise.scale,amount)
+      },
+      mediumFNoise : {
+        active : frameA.mediumFNoise.active,
+        amplitude : p.lerp(frameA.mediumFNoise.active?frameA.mediumFNoise.amplitude:0,frameB.mediumFNoise.active?frameB.mediumFNoise.amplitude:0,amount),
+        scale : p.lerp(frameA.mediumFNoise.scale,frameB.mediumFNoise.scale,amount)
+      },
+      highFNoise : {
+        active : frameA.highFNoise.active,
+        amplitude : p.lerp(frameA.highFNoise.active?frameA.highFNoise.amplitude:0,frameB.highFNoise.active?frameB.highFNoise.amplitude:0,amount),
+        scale : p.lerp(frameA.highFNoise.scale,frameB.highFNoise.scale,amount)
+      },
+      perlinNoise : {
+        active : frameA.perlinNoise.active,
+        amplitude : p.lerp(frameA.perlinNoise.active?frameA.perlinNoise.amplitude:0,frameB.perlinNoise.active?frameB.perlinNoise.amplitude:0,amount),
+        scale : p.lerp(frameA.perlinNoise.scale,frameB.perlinNoise.scale,amount)
+      },
+      imageScale : p.lerp(frameA.imageScale,frameB.imageScale,amount),
+      flowPoints : newFps
+    };
+  }
+
+  function updateKeyframes() {
+    //bounds checking
+    // if ((settingsRef.current.keyframes.keyframes[settingsRef.current.keyframes.currentAnimation] === undefined) || (settingsRef.current.keyframes.keyframes[settingsRef.current.keyframes.currentAnimation + 1] === undefined)) {
+    //   settingsRef.current.keyframes.active = false;
+    //   settingsRef.current.keyframes.currentAnimation = 0;
+    //   //stop vid if needed
+    //   if (settingsRef.current.backgroundIsVideo) {
+    //   }
+    //   return 
+    // }
+
+    //interpolating between frames
+    const easeInOutSine = (t) => {
+      return -0.5 * (Math.cos(Math.PI * t) - 1);
+    }
+    const easeInOutCubic = (t) => {
+      return t < 0.5 ? 4 * t * t * t : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1;
+    }
+
+    let lerpPercent = settingsRef.current.keyframes.currentFrame / settingsRef.current.keyframes.keyframes[settingsRef.current.keyframes.currentAnimation].transitionLength;
+    switch(settingsRef.current.keyframes.keyframes[settingsRef.current.keyframes.currentAnimation].easeType){
+      case 'linear': break;
+      case 'sine'  : lerpPercent = easeInOutSine(lerpPercent); break;
+      case 'cubic' : lerpPercent = easeInOutCubic(lerpPercent); break;
+    }
+    //get a new frame somewhere between the two
+    const newFrameData = interpolateBetweenKeyframes(settingsRef.current.keyframes.keyframes[settingsRef.current.keyframes.currentAnimation], settingsRef.current.keyframes.keyframes[settingsRef.current.keyframes.currentAnimation+1],lerpPercent);
+    const newSettings = getSettingsFromKeyframe(newFrameData,settingsRef.current.keyframes.currentAnimation);
+
+    //update frame (within animation)
+    newSettings.keyframes.currentFrame++;
+    if (newSettings.keyframes.currentFrame > newSettings.keyframes.keyframes[newSettings.keyframes.currentAnimation].transitionLength) {
+      newSettings.keyframes.currentFrame = 0;
+      //jump to next animation
+      if (!(newSettings.keyframes.keyframes[newSettings.keyframes.currentAnimation + 2] === undefined)) {
+        newSettings.keyframes.currentAnimation++;
+      }
+      //if ur looping
+      else if (newSettings.keyframes.looping) {
+        newSettings.keyframes.currentAnimation = 0;
+        //reset vid if needed
+        if (newSettings.backgroundIsVideo) {
+          newSettings.backgroundImage.currentTime = 0;
+        }
+        if (newSettings.recording) {
+          newSettings.recordingFinished = true;
+        }
+      }
+      //if not
+      else {
+        newSettings.keyframes.active = false;
+        newSettings.keyframes.currentAnimation = 0;
+        if (newSettings.recording) {
+          newSettings.recordingFinished = true;
+        }
+        //stop vid if needed
+        if (newSettings.backgroundIsVideo) {
+          newSettings.backgroundImage.stop();
+        }
+      }
+    }
+    else {
+      if (newSettings.backgroundIsVideo) {
+        const frameTime = 1 / 25;//25fps?
+        newSettings.backgroundImage.currentTime = Math.min(newSettings.backgroundImage.duration, newSettings.backgroundImage.currentTime + frameTime * newSettings.keyframes.currentFrame);
+      }
+    }
+    return newSettings;
+  }
+
+  function keyframeSettingsChildren(){
+    const keyframeDisplayStyle = {
+      width: 30,
+      height:30,
+      borderStyle:'dashed',
+      borderColor:'#000000',
+    };
+    const keyframeDisplayStyle_focused = {
+      borderStyle:'solid',
+      borderColor:'#ff0000',
+      animationName: 'example',
+      animationDuration: '0.75s',
+      animationIterationCount:'infinite'
+    };
+    const new_keyframe_button_style = {
+      width: 30,
+      height:30,
+      // marginTop:(keyframeCount == 0)?'10px':'0px',
+      backgroundColor : 'transparent',
+      borderColor:'#ffffff',
+      borderStyle:'dashed',
+      color:'#ffffff',
+      fontSize:'24px',
+      fontFamily:'monospace',
+      display:'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      mixBlendMode:'difference',
+    }
+    const buttonHolderStyle = {
+      display:'flex',
+      floatDirection:'left',
+      gap:'4px'
+    }
+    const saveCurrentStateAsKeyframe = (currentState) => {
+      return {
+        fontSize : currentState.fontSize,
+        displayText : currentState.displayText,
+        fontColor : currentState.fontColor,
+        viewWindow : {
+            offset : {x:currentState.viewWindow.offset.x,y:currentState.viewWindow.offset.y},
+            origin: {x:currentState.viewWindow.origin.x,y:currentState.viewWindow.origin.y},
+        },
+        noiseWindow : {
+            offset : {x:currentState.noiseWindow.offset.x,y:currentState.noiseWindow.offset.y},
+            origin: {x:currentState.noiseWindow.origin.x,y:currentState.noiseWindow.origin.y},
+        },
+        globalNoise :{
+            amplitude:1.0,
+            scale:1.0
+        },
+        lowFNoise :{
+            active : true,
+            amplitude:currentState.lowFNoise.active?currentState.lowFNoise.amplitude:0,
+            scale: currentState.lowFNoise.scale
+        },
+        mediumFNoise:{
+            active : true,
+            amplitude:currentState.mediumFNoise.active?currentState.mediumFNoise.amplitude:0,
+            scale: currentState.mediumFNoise.scale
+        },
+        highFNoise:{
+            active : true,
+            amplitude:currentState.highFNoise.active?currentState.highFNoise.amplitude:0,
+            scale: currentState.highFNoise.scale
+        },
+        perlinNoise:{
+            active:true,
+            amplitude:currentState.perlinNoise.active?currentState.perlinNoise.amplitude:0,
+            scale: currentState.perlinNoise.scale
+        },
+        imageScale : currentState.imageScale,
+        backgroundColor : currentState.backgroundColor,
+        gridColor : currentState.gridColor,
+        blurGridIntensity : currentState.blurGridIntensity,
+        gridThickness : currentState.gridThickness,
+        gridSize : currentState.gridSize,
+        flowPoints : [...currentState.flowPoints],
+        transitionLength : 20,
+        easeType: 'linear',
+      };
+    }
+    const saveKeyframesAsJSON = (settings) => {
+        const fileName = 'keyframes.json';
+        // Create a blob of the data
+        const fileToSave = new Blob([JSON.stringify(settings.keyframes.keyframes)], {
+            type: 'application/json'
+        });
+        saveAs(fileToSave, fileName);
+    }
+
+    const keyframes = [];
+    for(let kf = 0; kf<settings.keyframes.keyframes.length; kf++){
+        keyframes.push(<div key = {kf} className = {"keyframe_display"} style = {(kf == settings.keyframes.currentAnimation)?keyframeDisplayStyle_focused:keyframeDisplayStyle} onClick = {(e) => {setSettings(getSettingsFromKeyframe(settings.keyframes.keyframes[kf],kf));}}></div>);
+    }
+    keyframes.push(<div key = '-1' className = "new_keyframe_button" style = {new_keyframe_button_style} onClick = {(e) => {const frames = settings.keyframes.keyframes;frames.push(saveCurrentStateAsKeyframe(settings));setSettings({...settings,keyframes:{...settings.keyframes,currentAnimation:frames.length-1,keyframes:frames}});}}>+</div>)
+    return(
+        <>
+        <div style = {{color:'#ffffff',fontWeight:'bold',mixBlendMode:'difference'}}>{(settings.keyframes.keyframes.length == 0)?'Add a keyframe':('Frame '+(settings.keyframes.currentAnimation+1))}</div>
+        <div className = "keyframe_display_container" style ={{display:'flex',gap:'3px'}}>
+            {keyframes}
+        </div>
+        {settings.keyframes.keyframes.length &&
+          <>
+          <div style = {buttonHolderStyle}>
+              <LiquidButton title = {'overwrite'} callback = {() => {const frames = settings.keyframes.keyframes; frames[settings.keyframes.currentAnimation] = saveCurrentStateAsKeyframe(settings); setSettings({...settings,keyframes:{...settings.keyframes,keyframes:frames}});}}></LiquidButton>
+              <LiquidButton title = {'delete'} callback = {() => {const frames = settings.keyframes.keyframes; const newFrames = []; for(let i = 0; i<frames.length; i++){if(i != settings.keyframes.currentAnimation){newFrames.push(frames[i])}} let newCurrentA = settings.keyframes.currentAnimation; if(newCurrentA<=newFrames.length){newCurrentA = newFrames.length-1;} setSettings({...settings,keyframes:{...settings.keyframes,keyframes:newFrames,currentAnimation:newCurrentA}});}}></LiquidButton>
+              <LiquidButton title = {settings.keyframes.active?'stop':'play'} callback = {() => {const newS = {...settings}; newS.keyframes.active = !newS.keyframes.active; if(!newS.keyframes.active){newS.keyframes.currentAnimation = 0;newS.keyframes.currentFrame = 0;}setSettings(newS)}}></LiquidButton>
+              <LiquidCheckbox title = {'loop'} setTitleInsideBrackets = {false} callback = {(val) => {setSettings({...settings,keyframes:{...settings.keyframes,looping:val}})}}></LiquidCheckbox>
+          </div>
+          <LiquidSlider callback = {(val) => {const frames = settings.keyframes.keyframes;frames[settings.keyframes.currentAnimation].transitionLength = val;setSettings({...settings,keyframes:{...settings.keyframes,keyframes:frames}});}} label = {"length: "} min = {"1"} max = {"3600"} stepsize = {"1"} currentValue = {settings.keyframes.keyframes[settings.keyframes.currentAnimation].transitionLength} defaultValue = {settings.keyframes.keyframes[settings.keyframes.currentAnimation].transitionLength}/>
+          <LiquidDropdown label = {"easing: "} callback = {(val) => {const frames = settings.keyframes.keyframes; frames[settings.keyframes.currentAnimation].easeType = val; setSettings({...settings,keyframes:{...settings.keyframes,keyframes:frames}});}} options = {['linear','sine','cubic']} value = {settings.keyframes.keyframes[settings.keyframes.currentAnimation].easeType}></LiquidDropdown>
+          <LiquidButton title = {settings.recording?'stop rendering':'render & save'} callback = {()=>{}}></LiquidButton>
+          <LiquidButton title = {'save as json'} callback = {()=>{saveKeyframesAsJSON(settings)}}></LiquidButton>
+          {/* {(settings.recordedFrame != 0 && !settings.recording) &&
+              <LiquidButton title = {'clear render buffer'} callback = {()=>{settings.needToClearRenderBuffer = true;}}></LiquidButton>
+          } */}
+          </>
+        }
+        </>
+    );
+  }
 
   //if init correctly
   // if(settings.ready){
@@ -747,7 +1045,7 @@ function App() {
           <LiquidMenuTab title = "distortion points" background = {'#00a2adff'} defaultState = {settings.distortionPointsMenu.open} children = {distortionPointsChildren()}></LiquidMenuTab>
           <LiquidMenuTab title = "distortion fields" background = {'#009dffff'}defaultState = {settings.distortionMenu.open} children = {distortionSettingsChildren}></LiquidMenuTab>
           <LiquidMenuTab title = "background" background = {'#009dffff'}defaultState = {settings.backgroundMenu.open} children = {backgroundSettingsChildren()}></LiquidMenuTab>
-          <LiquidKeyframeSettings settings = {settings} liquidPNGInstance={liquidPNG.current}></LiquidKeyframeSettings>
+          <LiquidMenuTab title = "keyframes" background = {'#807bffff'} defaultState = {settings.keyframeMenu.open} children = {keyframeSettingsChildren()}></LiquidMenuTab>
           </>
         }
       </div>

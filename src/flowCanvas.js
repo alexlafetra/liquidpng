@@ -15,6 +15,18 @@ function hexToRgb(hex) {
     return null;
 }
 
+function flattenPointArray(points){
+    const array = [];
+    // if(points.length == 0){
+    //     array.push(0,0,0);
+    //     return array;
+    // }
+    for(let p of points){
+        array.push(p.x,p.y,p.amount);
+    }
+    return array;
+}
+
 class FlowCanvas{
     constructor(settings){
         this.settings = settings;
@@ -154,7 +166,7 @@ class FlowCanvas{
         this.p5.clear();
         this.p5.shader(this.flowFieldShader);
         this.flowFieldShader.setUniform('uClampFloats',true);
-        this.flowFieldShader.setUniform('uFlowPoints',settings.flowPoints);
+        this.flowFieldShader.setUniform('uFlowPoints',flattenPointArray(settings.flowPoints));
         this.flowFieldShader.setUniform('uUseFlowPoints',true);
         this.flowFieldShader.setUniform('uHighFrequencyNoiseAmplitude',settings.highFNoise.active?settings.highFNoise.amplitude:0.0);
         this.flowFieldShader.setUniform('uHighFrequencyNoiseScale',settings.highFNoise.scale/settings.globalScale);
@@ -218,7 +230,8 @@ class FlowCanvas{
     }
     createFlowFieldShader(settings){
         //not sure why... but u need to add one to this to make it work
-        const flowPointCount = (settings.flowPoints.length <= 3)?2.0:Math.trunc(settings.flowPoints.length+1);
+        // const flowPointCount = (settings.flowPoints.length <= 3)?2.0:Math.trunc(settings.flowPoints.length+1);
+        const flowPointCount = Math.max(settings.flowPoints.length,2);
         const shaderSource = {
             vertexShader: ``+glsl`#version 300 es
             precision highp float;

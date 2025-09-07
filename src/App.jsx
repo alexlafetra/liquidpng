@@ -154,7 +154,6 @@ function App() {
   const movingFlowPoint = useRef(false);
   const [numberOfFramesRecorded,setNumberOfFramesRecorded] = useState(0);
   const [showFlowPoints,setShowFlowPoints] = useState(true);
-  const [flowPointCoordinates,setFlowPointCoordinates] = useState(null);
   const [targetFlowPoint,setTargetFlowPoint] = useState(0);
   const targetFlowPointRef = useRef(targetFlowPoint);
   useEffect(() => {
@@ -166,10 +165,10 @@ function App() {
     settingsRef.current = settings;
   },[settings]);
 
-  const flowPointCoordinatesRef = useRef(flowPointCoordinates);
-  useEffect(() => {
-    flowPointCoordinatesRef.current = flowPointCoordinates;
-  },[flowPointCoordinates]);
+  // const flowPointCoordinatesRef = useRef(flowPointCoordinates);
+  // useEffect(() => {
+  //   flowPointCoordinatesRef.current = flowPointCoordinates;
+  // },[flowPointCoordinates]);
 
   const [hidden,setHidden] = useState(settings.hideUI);
   const [showAbout,setShowAbout] = useState(false);
@@ -277,10 +276,10 @@ function App() {
     p.mouseDragged = () =>{
       if(movingFlowPoint.current){
         const newSettings = {...settingsRef.current};
-        newSettings.flowPoints[targetFlowPointRef.current] = p.mouseX/window.innerWidth;
-        newSettings.flowPoints[targetFlowPointRef.current+1] = p.mouseY/window.innerHeight;
+        const targetPoint = newSettings.flowPoints[targetFlowPointRef.current];
+        targetPoint.x = p.mouseX/window.innerWidth;
+        targetPoint.y = p.mouseY/window.innerHeight;
         setSettings(newSettings);
-        setFlowPointCoordinates({x:p.mouseX/window.innerWidth,y:p.mouseY/window.innerHeight});
       }
       else{
         if(p.mouseX < settingsRef.current.mainCanvas.width && p.mouseY < settingsRef.current.mainCanvas.height && p.mouseX > 0 && p.mouseY > 0){
@@ -558,16 +557,16 @@ function App() {
     </>
   );
 
-  function flowPointDivs(settings){
-    if(!settings.ready)
+  function flowPointDivs(){
+    if(!settingsRef.current.ready)
       return;
     const children = [];
-    for(let i = 0; i<settings.flowPoints.length; i+=3){
-      const size = Math.abs(settings.flowPoints[i+2]*600);
-      const coords = {x:settings.flowPoints[i]*settings.canvasWidth - size/2,y:settings.flowPoints[i+1]*settings.canvasHeight - size/2};
-      const red = settings.p5Inst.map(settings.flowPoints[i+2],-0.2,0.2,0,255);
-      const green = 0;
-      const blue = settings.p5Inst.map(settings.flowPoints[i+2],-0.2,0.2,255,0);
+    for(let i = 0; i<settingsRef.current.flowPoints.length; i++){
+      const point = settingsRef.current.flowPoints[i];
+      const size = Math.abs(point.amount*600);
+      const coords = {x:point.x*settingsRef.current.canvasWidth - size/2,y:point.y*settingsRef.current.canvasHeight - size/2};
+      const red = settingsRef.current.p5Inst.map(point.amount,-0.2,0.2,0,255);
+      const blue = settingsRef.current.p5Inst.map(point.amount,-0.2,0.2,255,0);
       const color = '#'+parseInt(red,10).toString(16)+'00'+parseInt(blue,10).toString(16);
       // settings.p5Inst.colorMode(settings.p5Inst.HSB,255);
       // settings.p5Inst.colorMode(settings.p5Inst.RGB,255);
@@ -601,7 +600,7 @@ function App() {
   function distortionPointsChildren(){
     const newCallback = () =>{
       const newFPs = settingsRef.current.flowPoints;
-      newFPs.push(0.5,0.5,0.1);
+      newFPs.push({x:0.5,y:0.5,amount:0.1});
       setSettings({...settingsRef.current,flowPoints:newFPs});
       liquidPNG.current.updateShaders = true;
     }
@@ -611,25 +610,25 @@ function App() {
     {settings.flowPoints.length > 0 &&
       <LiquidButton key = {-1} callback = {() => {
         const newFPs = [];
-        for(let i = 0; i<settings.flowPoints.length; i+=3){
+        for(let i = 0; i<settings.flowPoints.length; i++){
           if(i != targetFlowPoint){
-            newFPs.push(settingsRef.current.flowPoints[i],settingsRef.current.flowPoints[i+1],settingsRef.current.flowPoints[i+2]);
+            newFPs.push(settingsRef.current.flowPoints[i]);
           }
         }
         liquidPNG.current.updateShaders = true;
         setSettings({...settingsRef.current,flowPoints:newFPs});
-        setTargetFlowPoint(Math.max(0,newFPs.length-3));
+        setTargetFlowPoint(Math.max(0,newFPs.length-1));
       }} title = {'delete'}></LiquidButton>
     }
     <LiquidCheckbox title = {showFlowPoints?' hide':' show'} key = {-4} state = {showFlowPoints} callback = {() => {setShowFlowPoints(!showFlowPoints);}}></LiquidCheckbox>
     </div>)
-    for(let i = 0; i<settings.flowPoints.length; i+=3){
+    for(let i = 0; i<settings.flowPoints.length; i++){
       const style = {
         width: "100px",
         backgroundColor:(i==targetFlowPointRef.current)?"blue":"red"
       }
       children.push(
-        <LiquidSlider key = {i+1} callback = {(val) => {const newFPs = settingsRef.current.flowPoints; newFPs[i+2] = val; setSettings({...settingsRef.current,flowPoints:newFPs});}} label = {((i==targetFlowPoint)?">":"")} min = '-0.2' max = "0.2" stepsize = '0.001' defaultValue = {settingsRef.current.flowPoints[i+2]}></LiquidSlider>
+        <LiquidSlider key = {i+1} callback = {(val) => {const newFPs = settingsRef.current.flowPoints; newFPs[i].amount = val; setSettings({...settingsRef.current,flowPoints:newFPs});}} label = {((i==targetFlowPoint)?">":"")} min = '-0.2' max = "0.2" stepsize = '0.001' defaultValue = {settingsRef.current.flowPoints[i].amount}></LiquidSlider>
       )
     }
     return (<div>{children}</div>);
@@ -712,72 +711,76 @@ function App() {
     );
     return children;
   }
-  const getSettingsFromKeyframe = (activeKf,index) => {
+  const getSettingsFromKeyframe = (keyframe) => {
+    const flowPoints = [];
+    for(let p of keyframe.flowPoints){
+      flowPoints.push({x:p.x,y:p.y,amount:p.amount});
+    }
     return {
       ...settingsRef.current,
-      keyframes : {...settingsRef.current.keyframes,currentAnimation:index},
-      fontSize:activeKf.fontSize,
-      displayText : activeKf.displayText,
-      fontColor : activeKf.fontColor,
+      keyframes : {...settingsRef.current.keyframes},
+      fontSize:keyframe.fontSize,
+      displayText : keyframe.displayText,
+      fontColor : keyframe.fontColor,
       viewWindow : {
-          offset : {x:activeKf.viewWindow.offset.x,y:activeKf.viewWindow.offset.y},
-          origin: {x:activeKf.viewWindow.origin.x,y:activeKf.viewWindow.origin.y},
+          offset : {x:keyframe.viewWindow.offset.x,y:keyframe.viewWindow.offset.y},
+          origin: {x:keyframe.viewWindow.origin.x,y:keyframe.viewWindow.origin.y},
       },
       noiseWindow : {
-          offset : {x:activeKf.noiseWindow.offset.x,y:activeKf.noiseWindow.offset.y},
-          origin: {x:activeKf.noiseWindow.origin.x,y:activeKf.noiseWindow.origin.y},
+          offset : {x:keyframe.noiseWindow.offset.x,y:keyframe.noiseWindow.offset.y},
+          origin: {x:keyframe.noiseWindow.origin.x,y:keyframe.noiseWindow.origin.y},
       },
       globalNoise :{
           amplitude:1.0,
           scale:1.0
       },
       lowFNoise :{
-          active : activeKf.lowFNoise.active,
-          amplitude:activeKf.lowFNoise.amplitude,
-          scale: activeKf.lowFNoise.scale
+          active : keyframe.lowFNoise.active,
+          amplitude:keyframe.lowFNoise.amplitude,
+          scale: keyframe.lowFNoise.scale
       },
       mediumFNoise:{
-          active : activeKf.mediumFNoise.active,
-          amplitude: activeKf.mediumFNoise.amplitude,
-          scale: activeKf.mediumFNoise.scale
+          active : keyframe.mediumFNoise.active,
+          amplitude: keyframe.mediumFNoise.amplitude,
+          scale: keyframe.mediumFNoise.scale
       },
       highFNoise:{
-          active : activeKf.highFNoise.active,
-          amplitude: activeKf.highFNoise.amplitude,
-          scale: activeKf.highFNoise.scale
+          active : keyframe.highFNoise.active,
+          amplitude: keyframe.highFNoise.amplitude,
+          scale: keyframe.highFNoise.scale
       },
       perlinNoise:{
-          active:activeKf.perlinNoise.active,
-          amplitude: activeKf.perlinNoise.amplitude,
-          scale: activeKf.perlinNoise.scale
+          active:keyframe.perlinNoise.active,
+          amplitude: keyframe.perlinNoise.amplitude,
+          scale: keyframe.perlinNoise.scale
       },
-      imageScale : activeKf.imageScale,
-      backgroundColor : activeKf.backgroundColor,
-      gridColor : activeKf.gridColor,
-      blurGridIntensity : activeKf.blurGridIntensity,
-      gridThickness : activeKf.gridThickness,
-      gridSize : activeKf.gridSize,
-      flowPoints : [...activeKf.flowPoints]
+      imageScale : keyframe.imageScale,
+      backgroundColor : keyframe.backgroundColor,
+      gridColor : keyframe.gridColor,
+      blurGridIntensity : keyframe.blurGridIntensity,
+      gridThickness : keyframe.gridThickness,
+      gridSize : keyframe.gridSize,
+      flowPoints : flowPoints
     };
   }
-  const interpolateBetweenKeyframes = (frameA,frameB,amount) => {
+  function interpolateBetweenKeyframes(frameA,frameB,amount){
     const p = settingsRef.current.p5Inst;
     const newFps = [];
-    for(let i = 0; i<Math.max(frameA.flowPoints.length,frameB.flowPoints.length); i+=3){
+    for(let i = 0; i<Math.max(frameA.flowPoints.length,frameB.flowPoints.length); i++){
       let A,B;
       if(i >= frameA.flowPoints.length){
-        A = [frameB[i],frameB[i+1],0];
+        A = {x:frameB.flowPoints[i].x,y:frameB.flowPoints[i].y,amount:0};
       }
       else{
-        A = [frameA[i],frameA[i+1],frameA[i+2]];
+        A = frameA.flowPoints[i];
       }
       if(i >= frameB.flowPoints.length){
-        B = [frameA[i],frameA[i+1],0];
+        B = {x:frameA.flowPoints[i].x,y:frameA.flowPoints[i].y,amount:0};
       }
       else{
-        B = [frameB[i],frameB[i+1],frameB[i+2]];
+        B = frameB.flowPoints[i];
       }
-      newFps.push(p.lerp(A[0],B[0],amount),p.lerp(A[1],B[1],amount),p.lerp(A[2],B[2],amount));
+      newFps.push({x:p.lerp(A.x,B.x,amount),y:p.lerp(A.y,B.y,amount),amount:p.lerp(A.amount,B.amount,amount)});
     }
 
     return {...frameA,
@@ -840,16 +843,17 @@ function App() {
       case 'sine'  : lerpPercent = easeInOutSine(lerpPercent); break;
       case 'cubic' : lerpPercent = easeInOutCubic(lerpPercent); break;
     }
+
     //get a new frame somewhere between the two
     const newFrameData = interpolateBetweenKeyframes(settingsRef.current.keyframes.keyframes[settingsRef.current.keyframes.currentAnimation], settingsRef.current.keyframes.keyframes[settingsRef.current.keyframes.currentAnimation+1],lerpPercent);
-    const newSettings = getSettingsFromKeyframe(newFrameData,settingsRef.current.keyframes.currentAnimation);
+    const newSettings = getSettingsFromKeyframe(newFrameData);
 
     //update frame (within animation)
     newSettings.keyframes.currentFrame++;
     if (newSettings.keyframes.currentFrame > newSettings.keyframes.keyframes[newSettings.keyframes.currentAnimation].transitionLength) {
       newSettings.keyframes.currentFrame = 0;
       //jump to next animation
-      if (!(newSettings.keyframes.keyframes[newSettings.keyframes.currentAnimation + 2] === undefined)) {
+      if (newSettings.keyframes.keyframes[newSettings.keyframes.currentAnimation + 2] !== undefined) {
         newSettings.keyframes.currentAnimation++;
       }
       //if ur looping
@@ -920,6 +924,10 @@ function App() {
       gap:'4px'
     }
     const saveCurrentStateAsKeyframe = (currentState) => {
+      const flowPoints = [];
+      for(let p of currentState.flowPoints){
+        flowPoints.push({x:p.x,y:p.y,amount:p.amount});
+      }
       return {
         fontSize : currentState.fontSize,
         displayText : currentState.displayText,
@@ -962,7 +970,7 @@ function App() {
         blurGridIntensity : currentState.blurGridIntensity,
         gridThickness : currentState.gridThickness,
         gridSize : currentState.gridSize,
-        flowPoints : [...currentState.flowPoints],
+        flowPoints : flowPoints,
         transitionLength : 20,
         easeType: 'linear',
       };
@@ -977,8 +985,13 @@ function App() {
     }
 
     const keyframes = [];
-    for(let kf = 0; kf<settings.keyframes.keyframes.length; kf++){
-        keyframes.push(<div key = {kf} className = {"keyframe_display"} style = {(kf == settings.keyframes.currentAnimation)?keyframeDisplayStyle_focused:keyframeDisplayStyle} onClick = {(e) => {setSettings(getSettingsFromKeyframe(settings.keyframes.keyframes[kf],kf));}}></div>);
+    for(let kf = 0; kf<settingsRef.current.keyframes.keyframes.length; kf++){
+        keyframes.push(<div key = {kf} className = {"keyframe_display"} style = {(kf == settings.keyframes.currentAnimation)?keyframeDisplayStyle_focused:keyframeDisplayStyle} onClick = {(e) => {
+          const newS = getSettingsFromKeyframe(settingsRef.current.keyframes.keyframes[kf]);
+          newS.keyframes.currentAnimation = kf;
+          console.log(newS.flowPoints[0].x);
+          setSettings({...newS});
+      }}></div>);
     }
     keyframes.push(<div key = '-1' className = "new_keyframe_button" style = {new_keyframe_button_style} onClick = {(e) => {const frames = settings.keyframes.keyframes;frames.push(saveCurrentStateAsKeyframe(settings));setSettings({...settings,keyframes:{...settings.keyframes,currentAnimation:frames.length-1,keyframes:frames}});}}>+</div>)
     return(
@@ -990,13 +1003,30 @@ function App() {
         {settings.keyframes.keyframes.length &&
           <>
           <div style = {buttonHolderStyle}>
-              <LiquidButton title = {'overwrite'} callback = {() => {const frames = settings.keyframes.keyframes; frames[settings.keyframes.currentAnimation] = saveCurrentStateAsKeyframe(settings); setSettings({...settings,keyframes:{...settings.keyframes,keyframes:frames}});}}></LiquidButton>
-              <LiquidButton title = {'delete'} callback = {() => {const frames = settings.keyframes.keyframes; const newFrames = []; for(let i = 0; i<frames.length; i++){if(i != settings.keyframes.currentAnimation){newFrames.push(frames[i])}} let newCurrentA = settings.keyframes.currentAnimation; if(newCurrentA<=newFrames.length){newCurrentA = newFrames.length-1;} setSettings({...settings,keyframes:{...settings.keyframes,keyframes:newFrames,currentAnimation:newCurrentA}});}}></LiquidButton>
-              <LiquidButton title = {settings.keyframes.active?'stop':'play'} callback = {() => {const newS = {...settings}; newS.keyframes.active = !newS.keyframes.active; if(!newS.keyframes.active){newS.keyframes.currentAnimation = 0;newS.keyframes.currentFrame = 0;}setSettings(newS)}}></LiquidButton>
-              <LiquidCheckbox title = {'loop'} setTitleInsideBrackets = {false} callback = {(val) => {setSettings({...settings,keyframes:{...settings.keyframes,looping:val}})}}></LiquidCheckbox>
+              <LiquidButton title = {'overwrite'} callback = {() => {const frames = settingsRef.current.keyframes.keyframes; frames[settingsRef.current.keyframes.currentAnimation] = saveCurrentStateAsKeyframe(settingsRef.current); setSettings({...settingsRef.current,keyframes:{...settingsRef.current.keyframes,keyframes:frames}});}}></LiquidButton>
+              {/* delete */}
+              <LiquidButton title = {'delete'} callback = {() => {
+                const frames = settingsRef.current.keyframes.keyframes;
+                const newFrames = [];
+                for(let i = 0; i<frames.length; i++){
+                  if(i != settingsRef.current.keyframes.currentAnimation){
+                    newFrames.push(frames[i]);
+                  }
+                }
+                const newCurrentA = Math.min(settingsRef.current.keyframes.currentAnimation,newFrames.length-1);
+                setSettings({...settingsRef.current,keyframes:{...settingsRef.current.keyframes,keyframes:newFrames,currentAnimation:newCurrentA}});
+              }}></LiquidButton>
+              <LiquidButton title = {settings.keyframes.active?'stop':'play'} callback = {() => {
+                const newS = {...settingsRef.current};
+                newS.keyframes.active = !newS.keyframes.active;
+                newS.keyframes.currentAnimation = 0;
+                newS.keyframes.currentFrame = 0;
+                setSettings(newS);
+              }}></LiquidButton>
+              <LiquidCheckbox title = {'loop'} state = {settings.keyframes.looping} setTitleInsideBrackets = {false} callback = {() => {setSettings({...settingsRef.current,keyframes:{...settingsRef.current.keyframes,looping:!settingsRef.current.keyframes.looping}})}}></LiquidCheckbox>
           </div>
-          <LiquidSlider callback = {(val) => {const frames = settings.keyframes.keyframes;frames[settings.keyframes.currentAnimation].transitionLength = val;setSettings({...settings,keyframes:{...settings.keyframes,keyframes:frames}});}} label = {"length: "} min = {"1"} max = {"3600"} stepsize = {"1"} currentValue = {settings.keyframes.keyframes[settings.keyframes.currentAnimation].transitionLength} defaultValue = {settings.keyframes.keyframes[settings.keyframes.currentAnimation].transitionLength}/>
-          <LiquidDropdown label = {"easing: "} callback = {(val) => {const frames = settings.keyframes.keyframes; frames[settings.keyframes.currentAnimation].easeType = val; setSettings({...settings,keyframes:{...settings.keyframes,keyframes:frames}});}} options = {['linear','sine','cubic']} value = {settings.keyframes.keyframes[settings.keyframes.currentAnimation].easeType}></LiquidDropdown>
+          <LiquidSlider callback = {(val) => {const frames = settingsRef.current.keyframes.keyframes;frames[settingsRef.current.keyframes.currentAnimation].transitionLength = val;setSettings({...settingsRef.current,keyframes:{...settingsRef.current.keyframes,keyframes:frames}});}} label = {"length: "} min = {"1"} max = {"3600"} stepsize = {"1"} currentValue = {settings.keyframes.keyframes[settings.keyframes.currentAnimation].transitionLength} defaultValue = {settings.keyframes.keyframes[settings.keyframes.currentAnimation].transitionLength}/>
+          <LiquidDropdown label = {"easing: "} callback = {(val) => {const frames = settingsRef.current.keyframes.keyframes; frames[settingsRef.current.keyframes.currentAnimation].easeType = val; setSettings({...settingsRef.current,keyframes:{...settingsRef.current.keyframes,keyframes:frames}});}} options = {['linear','sine','cubic']} value = {settings.keyframes.keyframes[settings.keyframes.currentAnimation].easeType}></LiquidDropdown>
           <LiquidButton title = {settings.recording?'stop rendering':'render & save'} callback = {()=>{}}></LiquidButton>
           <LiquidButton title = {'save as json'} callback = {()=>{saveKeyframesAsJSON(settings)}}></LiquidButton>
           {/* {(settings.recordedFrame != 0 && !settings.recording) &&

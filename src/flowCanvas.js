@@ -17,10 +17,6 @@ function hexToRgb(hex) {
 
 function flattenPointArray(points){
     const array = [];
-    // if(points.length == 0){
-    //     array.push(0,0,0);
-    //     return array;
-    // }
     for(let p of points){
         array.push(p.x,p.y,p.amount);
     }
@@ -75,9 +71,11 @@ class FlowCanvas{
         this.currentText = this.settings.displayText;
         this.p5 = this.settings.p5Inst;
         this.mainCanvas = this.settings.mainCanvas;
+
         this.srcImage = this.p5.createFramebuffer({ width: this.settings.image.width, height: this.settings.image.height, textureFiltering: this.p5.NEAREST, format: this.p5.FLOAT});
+        
         //holds the flow field
-        this.flowFieldCanvas = this.p5.createFramebuffer({ width: this.settings.canvasWidth, height: this.settings.canvasWidth, textureFiltering: this.p5.NEAREST, format: this.settings.clampNoise?this.p5.UNSIGNED_BYTE:this.p5.FLOAT});
+        this.flowFieldCanvas = this.p5.createFramebuffer({ width: this.settings.canvasWidth, height: this.settings.canvasHeight, textureFiltering: this.p5.NEAREST, format: this.settings.clampNoise?this.p5.UNSIGNED_BYTE:this.p5.FLOAT});
         this.flowFieldShader = this.createFlowFieldShader(settings);
         this.outputShader = this.createOutputShader();
         if(this.settings.inputType == 'text'){
@@ -161,7 +159,7 @@ class FlowCanvas{
         this.srcImage.end();
         this.currentText = t;
     }
-    updateFlow(settings){
+    updateFlow(settings,viewWindow,noiseWindow){
         this.flowFieldCanvas.begin();
         this.p5.clear();
         this.p5.shader(this.flowFieldShader);
@@ -176,15 +174,15 @@ class FlowCanvas{
         this.flowFieldShader.setUniform('uMediumFrequencyNoiseScale',settings.mediumFNoise.scale/settings.globalScale);
         this.flowFieldShader.setUniform('uPerlinNoiseAmplitude',settings.perlinNoise.active?settings.perlinNoise.amplitude:0.0);
         this.flowFieldShader.setUniform('uPerlinNoiseScale',settings.perlinNoise.scale/settings.globalScale);
-        this.flowFieldShader.setUniform('uViewOffset',[settings.viewWindow.offset.x/settings.canvasWidth,settings.viewWindow.offset.y/settings.canvasHeight]);
-        this.flowFieldShader.setUniform('uNoiseOffset',[settings.noiseWindow.offset.x/settings.canvasWidth,settings.noiseWindow.offset.y/settings.canvasHeight]);
+        this.flowFieldShader.setUniform('uViewOffset',[viewWindow.offset.x/settings.canvasWidth,viewWindow.offset.y/settings.canvasHeight]);
+        this.flowFieldShader.setUniform('uNoiseOffset',[noiseWindow.offset.x/settings.canvasWidth,noiseWindow.offset.y/settings.canvasHeight]);
         this.p5.rect(-this.flowFieldCanvas.width / 2, -this.flowFieldCanvas.height / 2, this.flowFieldCanvas.width, this.flowFieldCanvas.height);
         this.flowFieldCanvas.end();
     }
-    render(settings){
+    render(settings,viewWindow,noiseWindow){
         if(settings.animation.active){
-            settings.noiseWindow.offset.x += settings.animation.xMotion;
-            settings.noiseWindow.offset.y += settings.animation.yMotion;
+            noiseWindow.offset.x += settings.animation.xMotion;
+            noiseWindow.offset.y += settings.animation.yMotion;
         }
         if(this.updateShaders){
             this.flowFieldShader = this.createFlowFieldShader(settings);
@@ -199,7 +197,7 @@ class FlowCanvas{
             }
             this.needsToReloadImage = false;
         }
-        this.updateFlow(settings);
+        this.updateFlow(settings,viewWindow,noiseWindow);
         this.p5.clear();
         this.p5.shader(this.outputShader);
         this.outputShader.setUniform('uTargetImage',this.srcImage);
@@ -223,7 +221,7 @@ class FlowCanvas{
         this.outputShader.setUniform('uGridColor',hexToRgb(settings.gridColor));
         this.outputShader.setUniform('uGridThickness',settings.gridThickness);
         this.outputShader.setUniform('uBlurGridIntensity',settings.blurGridIntensity);
-        this.outputShader.setUniform('uViewOffset',[settings.viewWindow.offset.x/settings.canvasWidth,settings.viewWindow.offset.y/settings.canvasHeight]);
+        this.outputShader.setUniform('uViewOffset',[viewWindow.offset.x/settings.canvasWidth,viewWindow.offset.y/settings.canvasHeight]);
         this.p5.quad(1,1,-1,1,-1,-1,1,-1);
         this.p5.resetShader();
         return settings;

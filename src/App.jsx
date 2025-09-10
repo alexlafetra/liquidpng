@@ -16,9 +16,7 @@ import LiquidColorPicker from './components/colorpicker.jsx'
 import LiquidFilePicker from './components/filepicker.jsx'
 import LiquidFlowSettings from './components/flowsettings.jsx';
 import LiquidButton from './components/button.jsx';
-
-
-
+import Webcam from 'react-webcam';
 
 /*
 
@@ -151,6 +149,38 @@ function App() {
     //but can also contain other hash functions
     noiseAlgorithms : noiseAlgorithms
   });
+
+  const ml5 = useRef(window.ml5);
+  const handpose = useRef();
+  const predictions = useRef([]);
+  const webcamRef = useRef();
+  const webcamVideo = useRef();
+  const hand = useRef({
+    gesture : 'none',
+    new : {x:0,y:0},//always the most recent one
+    old : {x:0,y:0},//the one the sim renders with, and interpolates from
+    justPinched : false
+  });
+  //loading in the ml5 models
+  //borrowed from: https://eliraneln.medium.com/real-time-object-detection-using-ml5-js-and-react-c47612c60852
+  useEffect(() => {
+    let detectionInterval;
+    const modelLoaded = () => {
+      console.log("model ready!");
+      handpose.current.on("predict", results => {
+        predictions.current = results;
+      });
+    };
+    handpose.current = ml5.current.handpose(modelLoaded); 
+  }, []);
+
+  //called when the webcam video stream is ready
+  function setupWebcamVideo(e){
+    console.log(e);
+    webcamVideo.current = e.target;
+    handpose.current.predict(webcamVideo.current);
+  }
+
   const movingFlowPoint = useRef(false);
   const [numberOfFramesRecorded,setNumberOfFramesRecorded] = useState(0);
   const [showFlowPoints,setShowFlowPoints] = useState(true);
@@ -164,6 +194,23 @@ function App() {
   useEffect(() => {
     settingsRef.current = settings;
   },[settings]);
+
+  const viewWindow = useRef({
+    dragStarted : false,
+    start : {x:0,y:0},
+    end : {x:0,y:0},
+    sensitivity : 1,
+    offset : {x:window.innerWidth/2+75,y:window.innerHeight/2+100},
+    origin: {x:0,y:0}
+  });
+  const noiseWindow = useRef({
+    dragStarted : false,
+    start : {x:0,y:0},
+    end : {x:0,y:0},
+    sensitivity : 1,
+    offset : {x:0,y:0},
+    origin: {x:0,y:0}
+  });
 
   // const flowPointCoordinatesRef = useRef(flowPointCoordinates);
   // useEffect(() => {
@@ -212,7 +259,16 @@ function App() {
   let asciifier;
   let brightnessRenderer;
   let edgeRenderer;
-
+  
+  function threeDDistance(x,y,z,x1,y1,z1){
+    return Math.sqrt(Math.pow(x-x1,2) + Math.pow(y-y1,2) + Math.pow(z-z1,2));
+  }
+  //transforms coords from webcam space into canvas space
+  function transformMLCoords(coord,scale = 2){
+    //0,0 is top left of webcam vid, and then it ranges from (0,0) ==> (video width, video height)
+    //also, vid coords need to be horizontally mirrored so it makes sense visually
+    return {x:(settingsRef.current.canvasWidth - coord.x/webcamVideo.current.videoWidth*settingsRef.current.canvasWidth) * scale - settingsRef.current.canvasWidth/2,y:coord.y/webcamVideo.current.videoHeight*settingsRef.current.canvasHeight * scale - settingsRef.current.canvasHeight/2};
+  }
   //P5 sketch body
   const mainSketch = (p) =>{
 
@@ -239,38 +295,140 @@ function App() {
       setSettings(newSettings);
     }
     p.draw = () =>{
+      const smoothing = 8;
+      //update flow field based on pinch recognition
+      if(hand.current.gesture == 'pinch'){
+        const coord = {x:hand.current.old.x + (hand.current.old.x - hand.current.new.x)/smoothing,y:hand.current.old.y + (hand.current.old.y - hand.current.new.y)/smoothing};
+        if(!noiseWindow.current.dragStarted){
+            noiseWindow.current.dragStarted = true;
+            noiseWindow.current.start = coord;
+        }
+        else{
+            noiseWindow.current.end = coord;
+            const dX = noiseWindow.current.end.x - noiseWindow.current.start.x;
+            const dY = noiseWindow.current.end.y - noiseWindow.current.start.y;
+            noiseWindow.current.offset.x = -dX + noiseWindow.current.origin.x;
+            noiseWindow.current.offset.y = -dY+ noiseWindow.current.origin.y;
+        }
+      }
+      else if(hand.current.gesture == 'none' && hand.current.justPinched){
+        const coord = {x:hand.current.old.x + (hand.current.old.x - hand.current.new.x)/5,y:hand.current.old.y + (hand.current.old.y - hand.current.new.y)/5};
+        movingFlowPoint.current = false;
+        if(noiseWindow.current.dragStarted){
+          noiseWindow.current.end = coord;
+          const dX = noiseWindow.current.end.x - noiseWindow.current.start.x;
+          const dY = noiseWindow.current.end.y - noiseWindow.current.start.y;
+          noiseWindow.current.origin.x -= dX;
+          noiseWindow.current.origin.y -= dY;
+          noiseWindow.current.dragStarted = false;
+        }
+      }
+
       if(settingsRef.current.ready){
         if(settingsRef.current.canvasHeight !== settingsRef.current.mainCanvas.height || settingsRef.current.canvasWidth !== settingsRef.current.mainCanvas.width){
           settingsRef.current.p5Inst.resizeCanvas(settingsRef.current.canvasWidth,settingsRef.current.canvasHeight);
         }
         updateLiquidPNG(settingsRef.current);
       }
+      if(webcamVideo.current !== undefined && (p.frameCount%1 === 0)){
+        handpose.current.predict(webcamVideo.current);
+      }
+      
+      // predictions object looks like:
+      // handInViewConfidence: 0.9990172386169434, 
+      // boundingBox: {
+      //   topLeft: Array(2),
+      //   bottomRight: Array(2),
+      // },
+      // landmarks: Array(21),
+      // annotations: {
+      //   thumb: Array(4),
+      //   indexFinger: Array(4),
+      //   middleFinger: Array(4),
+      //   ringFinger: Array(4)
+      //   pinky: Array(4),
+      //   palmBase: Array(1)
+      // }
+
+      //drawing hand
+      p.resetShader();
+      p.push();
+      for(let i = 0; i<predictions.current.length; i++){
+        const prediction = predictions.current[i];
+        const colors = [[255,0,0],[0,255,0],[0,0,255],[255,255,0],[0,255,0]];
+        const fingers = [prediction.annotations.thumb,prediction.annotations.indexFinger,prediction.annotations.middleFinger,prediction.annotations.ringFinger,prediction.annotations.pinky];
+        const palmCoord = transformMLCoords({x:prediction.annotations.palmBase[0][0],y:prediction.annotations.palmBase[0][1]},1);
+        for(let i = 0; i<fingers.length; i++){
+          const finger = fingers[i];
+          p.stroke(colors[i]);
+          p.beginShape(p.LINES);
+          for(let point = 0; point<finger.length-1; point++){
+            const tP1 = transformMLCoords({x:finger[point][0],y:finger[point][1]},1);
+            const tP2 = transformMLCoords({x:finger[point+1][0],y:finger[point+1][1]},1);
+            p.vertex(tP1.x,tP1.y);
+            p.vertex(tP2.x,tP2.y);
+          }
+          const baseCoord = transformMLCoords({x:finger[0][0],y:finger[0][1]},1)
+          p.vertex(baseCoord.x,baseCoord.y);
+          p.vertex(palmCoord.x,palmCoord.y);
+          p.endShape();
+        }
+        const topLCoord = transformMLCoords({x:prediction.boundingBox.topLeft[0],y:prediction.boundingBox.topLeft[1]},1);
+        const bottomRCoord = transformMLCoords({x:prediction.boundingBox.bottomRight[0],y:prediction.boundingBox.bottomRight[1]},1);
+        p.stroke(255,0,0);
+        p.noFill();
+        p.rect(topLCoord.x,topLCoord.y,bottomRCoord.x-topLCoord.x,bottomRCoord.y-topLCoord.y);
+      }
+      p.pop();
+
+      //run gesture predictions on em
+      if(predictions.current.length>0){
+        const thumb = predictions.current[0].annotations.thumb[3];
+        const indexFinger = predictions.current[0].annotations.indexFinger[3];
+        const pinchDist = threeDDistance(thumb[0],thumb[1],thumb[2],indexFinger[0],indexFinger[1],indexFinger[2]);
+        const pinchThreshold = 20;
+        if(pinchDist<pinchThreshold){
+          const pinchCoord = transformMLCoords({
+            x : (indexFinger[0] + thumb[0])/2,
+            y : (indexFinger[1] + thumb[1])/2
+          });
+          hand.current = {
+            ...hand.current,
+            gesture:'pinch',
+            new : {x:pinchCoord.x,y:pinchCoord.y},
+            old : hand.current.justPinched?{...hand.current.old}:{x:pinchCoord.x,y:pinchCoord.y},
+            justPinched : true
+          };
+        }
+        else{
+          hand.current = {...hand.current,gesture:'none',justPinched:false};
+        }
+      }
+      else{
+        console.log(predictions.current);
+      }
     }
     p.mouseReleased = () =>{
       movingFlowPoint.current = false;
       if(p.keyIsDown(p.SHIFT)){
-        const newSettings = {...settingsRef.current};
-        if(newSettings.viewWindow.dragStarted){
-          newSettings.viewWindow.end = {x:p.mouseX,y:p.mouseY}
-          const dX = newSettings.viewWindow.end.x - newSettings.viewWindow.start.x;
-          const dY = newSettings.viewWindow.end.y - newSettings.viewWindow.start.y;
-          newSettings.viewWindow.origin.x -= dX;
-          newSettings.viewWindow.origin.y -= dY;
+        if(viewWindow.current.dragStarted){
+          viewWindow.current.end = {x:p.mouseX,y:p.mouseY}
+          const dX = viewWindow.current.end.x - viewWindow.current.start.x;
+          const dY = viewWindow.current.end.y - viewWindow.current.start.y;
+          viewWindow.current.origin.x -= dX;
+          viewWindow.current.origin.y -= dY;
         }
-        newSettings.viewWindow.dragStarted = false;
-        setSettings(newSettings);
+        viewWindow.current.dragStarted = false;
       }
       else{
-        const newSettings = {...settingsRef.current};
-        if(newSettings.noiseWindow.dragStarted){
-          newSettings.noiseWindow.end = {x:p.mouseX,y:p.mouseY}
-          const dX = newSettings.noiseWindow.end.x - newSettings.noiseWindow.start.x;
-          const dY = newSettings.noiseWindow.end.y - newSettings.noiseWindow.start.y;
-          newSettings.noiseWindow.origin.x -= dX;
-          newSettings.noiseWindow.origin.y -= dY;
+        if(noiseWindow.current.dragStarted){
+          noiseWindow.current.end = {x:p.mouseX,y:p.mouseY}
+          const dX = noiseWindow.current.end.x - noiseWindow.current.start.x;
+          const dY = noiseWindow.current.end.y - noiseWindow.current.start.y;
+          noiseWindow.current.origin.x -= dX;
+          noiseWindow.current.origin.y -= dY;
         }
-        newSettings.noiseWindow.dragStarted = false;
-        setSettings(newSettings);
+        noiseWindow.current.dragStarted = false;
       }
     }
     p.mouseDragged = () =>{
@@ -283,34 +441,34 @@ function App() {
       }
       else{
         if(p.mouseX < settingsRef.current.mainCanvas.width && p.mouseY < settingsRef.current.mainCanvas.height && p.mouseX > 0 && p.mouseY > 0){
-          const newSettings = {...settingsRef.current};
+          // const newSettings = {...settingsRef.current};
           if(p.keyIsDown(p.SHIFT)){
-            if(!newSettings.viewWindow.dragStarted){
-              newSettings.viewWindow.dragStarted = true;
-              newSettings.viewWindow.start = {x:p.mouseX,y:p.mouseY};
+            if(!viewWindow.current.dragStarted){
+              viewWindow.current.dragStarted = true;
+              viewWindow.current.start = {x:p.mouseX,y:p.mouseY};
             }
             else{
-              newSettings.viewWindow.end = {x:p.mouseX,y:p.mouseY}
-              const dX = newSettings.viewWindow.end.x - newSettings.viewWindow.start.x;
-              const dY = newSettings.viewWindow.end.y - newSettings.viewWindow.start.y;
-              newSettings.viewWindow.offset.x = -dX + newSettings.viewWindow.origin.x;
-              newSettings.viewWindow.offset.y = -dY+ newSettings.viewWindow.origin.y;
+              viewWindow.current.end = {x:p.mouseX,y:p.mouseY}
+              const dX = viewWindow.current.end.x - viewWindow.current.start.x;
+              const dY = viewWindow.current.end.y - viewWindow.current.start.y;
+              viewWindow.current.offset.x = -dX + viewWindow.current.origin.x;
+              viewWindow.current.offset.y = -dY+ viewWindow.current.origin.y;
             }
           }
           else{
-            if(!newSettings.noiseWindow.dragStarted){
-                newSettings.noiseWindow.dragStarted = true;
-                newSettings.noiseWindow.start = {x:p.mouseX,y:p.mouseY};
+            if(!noiseWindow.current.dragStarted){
+                noiseWindow.current.dragStarted = true;
+                noiseWindow.current.start = {x:p.mouseX,y:p.mouseY};
             }
             else{
-                newSettings.noiseWindow.end = {x:p.mouseX,y:p.mouseY}
-                const dX = newSettings.noiseWindow.end.x - newSettings.noiseWindow.start.x;
-                const dY = newSettings.noiseWindow.end.y - newSettings.noiseWindow.start.y;
-                newSettings.noiseWindow.offset.x = -dX + newSettings.noiseWindow.origin.x;
-                newSettings.noiseWindow.offset.y = -dY+ newSettings.noiseWindow.origin.y;
+                noiseWindow.current.end = {x:p.mouseX,y:p.mouseY}
+                const dX = noiseWindow.current.end.x - noiseWindow.current.start.x;
+                const dY = noiseWindow.current.end.y - noiseWindow.current.start.y;
+                noiseWindow.current.offset.x = -dX + noiseWindow.current.origin.x;
+                noiseWindow.current.offset.y = -dY+ noiseWindow.current.origin.y;
             }
           }
-          setSettings(newSettings);
+          // setSettings(newSettings);
         }
       }
     }
@@ -481,7 +639,7 @@ function App() {
       s = updateKeyframes();
       setSettings(s);
     }
-    liquidPNG.current.render(s);
+    liquidPNG.current.render(s,viewWindow.current,noiseWindow.current);
     // if(s.recording){
     //   p.frameRate(1);
     //   captureFrame();
@@ -989,7 +1147,6 @@ function App() {
         keyframes.push(<div key = {kf} className = {"keyframe_display"} style = {(kf == settings.keyframes.currentAnimation)?keyframeDisplayStyle_focused:keyframeDisplayStyle} onClick = {(e) => {
           const newS = getSettingsFromKeyframe(settingsRef.current.keyframes.keyframes[kf]);
           newS.keyframes.currentAnimation = kf;
-          console.log(newS.flowPoints[0].x);
           setSettings({...newS});
       }}></div>);
     }
@@ -1050,6 +1207,13 @@ function App() {
 
   return (
     <div className = "app_container">
+      <Webcam ref = {webcamRef} mirrored = {true} onLoadedData={(e) => {setupWebcamVideo(e);}} videoConstraints={{
+        // frameRate: { ideal: 30, max: 60 },
+        width: 160,
+        height : 120,
+      }} 
+      // style={{ display: "none" }}
+      />
       <div style = {{position:'absolute',width:'100%',left:'0px',top:'0px'}}>
         <main></main>
       </div>

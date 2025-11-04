@@ -178,13 +178,14 @@ class FlowCanvas{
         this.flowFieldShader.setUniform('uPerlinNoiseScale',settings.perlinNoise.scale/settings.globalScale);
         this.flowFieldShader.setUniform('uViewOffset',[settings.viewWindow.offset.x/settings.canvasWidth,settings.viewWindow.offset.y/settings.canvasHeight]);
         this.flowFieldShader.setUniform('uNoiseOffset',[settings.noiseWindow.offset.x/settings.canvasWidth,settings.noiseWindow.offset.y/settings.canvasHeight]);
+        this.flowFieldShader.setUniform('uPerlinNoiseOffset',[settings.perlinNoise.offset.x/settings.canvasWidth,settings.perlinNoise.offset.y/settings.canvasHeight]);
         this.p5.rect(-this.flowFieldCanvas.width / 2, -this.flowFieldCanvas.height / 2, this.flowFieldCanvas.width, this.flowFieldCanvas.height);
         this.flowFieldCanvas.end();
     }
     render(settings){
-        if(settings.animation.active){
-            settings.noiseWindow.offset.x += settings.animation.xMotion;
-            settings.noiseWindow.offset.y += settings.animation.yMotion;
+        if(settings.perlinNoise.scrolling){
+            settings.perlinNoise.offset.x += settings.animation.xMotion;
+            settings.perlinNoise.offset.y += settings.animation.yMotion;
         }
         if(this.updateShaders){
             this.flowFieldShader = this.createFlowFieldShader(settings);
@@ -195,6 +196,7 @@ class FlowCanvas{
                 this.loadImage(settings.image);
             }
             else if(settings.inputType == 'text'){
+                console.log(settings);
                 this.reloadText(settings);
             }
             this.needsToReloadImage = false;
@@ -262,6 +264,7 @@ class FlowCanvas{
             uniform float uHighFrequencyNoiseScale;
             uniform float uPerlinNoiseAmplitude;
             uniform float uPerlinNoiseScale;
+            uniform vec2 uPerlinNoiseOffset;
 
             uniform vec3 uFlowPoints[`+flowPointCount+glsl`];
             const int flowPointCount = `+flowPointCount+glsl`;
@@ -315,11 +318,11 @@ class FlowCanvas{
                 float r =   ((uLowFrequencyNoiseAmplitude>0.0)?(uLowFrequencyNoiseAmplitude * (noise(vPosition*uLowFrequencyNoiseScale + uNoiseOffset) - 0.5)):0.0)+ 
                             ((uMediumFrequencyNoiseAmplitude>0.0)?(uMediumFrequencyNoiseAmplitude * (noise(vPosition*uMediumFrequencyNoiseScale + uNoiseOffset) - 0.5)):0.0) + 
                             ((uHighFrequencyNoiseAmplitude>0.0)?(uHighFrequencyNoiseAmplitude * (noise(vPosition*uHighFrequencyNoiseScale + uNoiseOffset) - 0.5)):0.0) +
-                            ((uPerlinNoiseAmplitude>0.0)?perlinNoise(vPosition*uPerlinNoiseScale + uNoiseOffset):0.0);
+                            ((uPerlinNoiseAmplitude>0.0)?perlinNoise(vPosition*uPerlinNoiseScale + uPerlinNoiseOffset):0.0);
                 float g =   ((uLowFrequencyNoiseAmplitude>0.0)?(uLowFrequencyNoiseAmplitude * (noise(vPosition.yx*uLowFrequencyNoiseScale + uNoiseOffset) - 0.5)):0.0)+ 
                             ((uMediumFrequencyNoiseAmplitude>0.0)?(uMediumFrequencyNoiseAmplitude * (noise(vPosition.yx*uMediumFrequencyNoiseScale + uNoiseOffset) - 0.5)):0.0) + 
                             ((uHighFrequencyNoiseAmplitude>0.0)?(uHighFrequencyNoiseAmplitude * (noise(vPosition.yx*uHighFrequencyNoiseScale + uNoiseOffset) - 0.5)):0.0) +
-                            ((uPerlinNoiseAmplitude>0.0)?perlinNoise(vPosition.yx*uPerlinNoiseScale + uNoiseOffset):0.0);
+                            ((uPerlinNoiseAmplitude>0.0)?perlinNoise(vPosition.yx*uPerlinNoiseScale + uPerlinNoiseOffset):0.0);
                 if(flowPointCount != 0){
                     vec2 force;
                     for(int i = 0; i<flowPointCount; i++){

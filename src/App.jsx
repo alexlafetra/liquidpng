@@ -18,8 +18,6 @@ import LiquidFlowSettings from './components/flowsettings.jsx';
 import LiquidButton from './components/button.jsx';
 
 
-
-
 /*
 
 okay new paradigm is:
@@ -132,7 +130,12 @@ function App() {
     perlinNoise:{
       active:false,
       amplitude : 0.1,
-      scale: 1.0
+      scale: 1.0,
+      scrolling:false,
+      offset:{
+        x:0,
+        y:0
+      }
     },
 
     clampNoise:false,
@@ -244,6 +247,11 @@ function App() {
           settingsRef.current.p5Inst.resizeCanvas(settingsRef.current.canvasWidth,settingsRef.current.canvasHeight);
         }
         updateLiquidPNG(settingsRef.current);
+      }
+    }
+    p.keyPressed = () => {
+      if(p.key === 'p'){
+        p.saveGif("test",10);
       }
     }
     p.mouseReleased = () =>{
@@ -622,7 +630,7 @@ function App() {
     }
     <LiquidCheckbox title = {showFlowPoints?' hide':' show'} key = {-4} state = {showFlowPoints} callback = {() => {setShowFlowPoints(!showFlowPoints);}}></LiquidCheckbox>
     </div>)
-    for(let i = 0; i<settings.flowPoints.length; i++){
+    for(let i = 0; i<settingsRef.current.flowPoints.length; i++){
       const style = {
         width: "100px",
         backgroundColor:(i==targetFlowPointRef.current)?"blue":"red"
@@ -637,15 +645,16 @@ function App() {
   const distortionSettingsChildren = (
     <>
     {/* <LiquidDropdown label = {"algorithm: "} callback = {(val) => {setSettings({...settings,activeNoiseAlgorithm: val});liquidPNG.current.flowFieldShader = liquidPNG.current.createFlowFieldShader();}} options = {Array.from({length:settings.noiseAlgorithms.length},(v,k) => k)} value = {'1'}></LiquidDropdown> */}
-    <LiquidCheckbox title = {'scroll thru'} state={settings.animation.active} callback = {(val) => {setSettings({...settings,animation:{...settings.animation,active:!settings.animation.active}})}}></LiquidCheckbox>
-    {settings.animation.active && 
+
+    <LiquidFlowSettings title = {"flow"} active = {settings.lowFNoise.active} amplitudeSliderSettings = {{min:0.0,max:5.0,stepsize:0.001,default:settings.lowFNoise.amplitude}} scaleSliderSettings = {{min:0.0,max:2.5,stepsize:0.001,default:settings.lowFNoise.scale}} noiseSettings = {settings.lowFNoise} onOffCallback = {(val) => {setSettings({...settings,lowFNoise:{...settings.lowFNoise,active:!settings.lowFNoise.active}})}} amplitudeCallback={(val) => {setSettings({...settings,lowFNoise:{...settings.lowFNoise,amplitude:val}});}} scaleCallback={(val) => {setSettings({...settings,lowFNoise:{...settings.lowFNoise,scale:val}});}}></LiquidFlowSettings>
+    <LiquidFlowSettings title = {"warp"} active={settings.mediumFNoise.active} amplitudeSliderSettings = {{min:0.0,max:5.0,stepsize:0.001,default:settings.mediumFNoise.amplitude}} scaleSliderSettings = {{min:0.0,max:5.0,stepsize:0.001,default:settings.mediumFNoise.scale}} noiseSettings = {settings.mediumFNoise} onOffCallback = {(val) => {setSettings({...settings,mediumFNoise:{...settings.mediumFNoise,active:!settings.mediumFNoise.active}})}} amplitudeCallback={(val) => {setSettings({...settings,mediumFNoise:{...settings.mediumFNoise,amplitude:val}});}} scaleCallback={(val) => {setSettings({...settings,mediumFNoise:{...settings.mediumFNoise,scale:val}});}}></LiquidFlowSettings>
+    <LiquidCheckbox title = {'scroll thru ripple'} state={settings.perlinNoise.scrolling} callback = {(val) => {setSettings({...settings,perlinNoise:{...settings.perlinNoise,scrolling:!settings.perlinNoise.scrolling}})}}></LiquidCheckbox>
+    {settings.perlinNoise.scrolling && 
         <div className = "flow_slider_container">
         <LiquidSlider callback = {(val) => {setSettings({...settings,animation:{...settings.animation,xMotion : parseFloat(val)}});}} label = {"x: "} min = {-10.0} max = {10.0} stepsize = {1} defaultValue = {settings.animation.xMotion}/>
         <LiquidSlider callback = {(val) => {setSettings({...settings,animation:{...settings.animation,yMotion : parseFloat(val)}});}} label = {"y: "} min = {-10.0} max = {10.0} stepsize = {1} defaultValue = {settings.animation.yMotion}/>
         </div>
     }
-    <LiquidFlowSettings title = {"flow"} active = {settings.lowFNoise.active} amplitudeSliderSettings = {{min:0.0,max:5.0,stepsize:0.001,default:settings.lowFNoise.amplitude}} scaleSliderSettings = {{min:0.0,max:2.5,stepsize:0.001,default:settings.lowFNoise.scale}} noiseSettings = {settings.lowFNoise} onOffCallback = {(val) => {setSettings({...settings,lowFNoise:{...settings.lowFNoise,active:!settings.lowFNoise.active}})}} amplitudeCallback={(val) => {setSettings({...settings,lowFNoise:{...settings.lowFNoise,amplitude:val}});}} scaleCallback={(val) => {setSettings({...settings,lowFNoise:{...settings.lowFNoise,scale:val}});}}></LiquidFlowSettings>
-    <LiquidFlowSettings title = {"warp"} active={settings.mediumFNoise.active} amplitudeSliderSettings = {{min:0.0,max:5.0,stepsize:0.001,default:settings.mediumFNoise.amplitude}} scaleSliderSettings = {{min:0.0,max:5.0,stepsize:0.001,default:settings.mediumFNoise.scale}} noiseSettings = {settings.mediumFNoise} onOffCallback = {(val) => {setSettings({...settings,mediumFNoise:{...settings.mediumFNoise,active:!settings.mediumFNoise.active}})}} amplitudeCallback={(val) => {setSettings({...settings,mediumFNoise:{...settings.mediumFNoise,amplitude:val}});}} scaleCallback={(val) => {setSettings({...settings,mediumFNoise:{...settings.mediumFNoise,scale:val}});}}></LiquidFlowSettings>
     <LiquidFlowSettings title = {"ripple"} active={settings.perlinNoise.active} amplitudeSliderSettings = {{min:0.0,max:1.0,stepsize:0.001,default:settings.perlinNoise.amplitude}} scaleSliderSettings = {{min:0.0,max:5.0,stepsize:0.001,default:settings.perlinNoise.scale}} noiseSettings = {settings.perlinNoise} onOffCallback = {(val) => {setSettings({...settings,perlinNoise:{...settings.perlinNoise,active:!settings.perlinNoise.active}})}} amplitudeCallback={(val) => {setSettings({...settings,perlinNoise:{...settings.perlinNoise,amplitude:val}});}} scaleCallback={(val) => {setSettings({...settings,perlinNoise:{...settings.perlinNoise,scale:val}});}}></LiquidFlowSettings>
     <LiquidFlowSettings title = {"dust"} active={settings.highFNoise.active} amplitudeSliderSettings = {{min:0.0,max:1.0,stepsize:0.001,default:settings.highFNoise.amplitude}} scaleSliderSettings = {{min:10.0,max:1000.0,stepsize:1.0,default:settings.highFNoise.scale}} noiseSettings = {settings.highFNoise} onOffCallback = {(val) => {setSettings({...settings,highFNoise:{...settings.highFNoise,active:!settings.highFNoise.active}})}} amplitudeCallback={(val) => {setSettings({...settings,highFNoise:{...settings.highFNoise,amplitude:val}});}} scaleCallback={(val) => {setSettings({...settings,highFNoise:{...settings.highFNoise,scale:val}});}}></LiquidFlowSettings>
     </>
@@ -716,11 +725,18 @@ function App() {
     for(let p of keyframe.flowPoints){
       flowPoints.push({x:p.x,y:p.y,amount:p.amount});
     }
+    let needsToUpdateImage = false;
+    console.log(keyframe);
+    if(keyframe.displayText !== settingsRef.current.displayText){
+      needsToUpdateImage = true;
+    }
     return {
       ...settingsRef.current,
       keyframes : {...settingsRef.current.keyframes},
       fontSize:keyframe.fontSize,
-      displayText : keyframe.displayText,
+      // displayText : keyframe.displayText,
+      displayText : "HEY",
+      needsToReloadImage : needsToUpdateImage,
       fontColor : keyframe.fontColor,
       viewWindow : {
           offset : {x:keyframe.viewWindow.offset.x,y:keyframe.viewWindow.offset.y},
@@ -886,6 +902,7 @@ function App() {
         newSettings.backgroundImage.currentTime = Math.min(newSettings.backgroundImage.duration, newSettings.backgroundImage.currentTime + frameTime * newSettings.keyframes.currentFrame);
       }
     }
+    newSettings.displayText = settingsRef.current.keyframes.keyframes[settingsRef.current.keyframes.currentAnimation].displayText;
     return newSettings;
   }
 
@@ -989,7 +1006,6 @@ function App() {
         keyframes.push(<div key = {kf} className = {"keyframe_display"} style = {(kf == settings.keyframes.currentAnimation)?keyframeDisplayStyle_focused:keyframeDisplayStyle} onClick = {(e) => {
           const newS = getSettingsFromKeyframe(settingsRef.current.keyframes.keyframes[kf]);
           newS.keyframes.currentAnimation = kf;
-          console.log(newS.flowPoints[0].x);
           setSettings({...newS});
       }}></div>);
     }
